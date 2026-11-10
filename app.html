@@ -1783,6 +1783,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       case "stop":
         finishSession(true);
         break;
+      case "glword": if (BYID[id]) glStart(id); break;
       case "listen": clearEcho(); if (BYID[id]) speak(BYID[id].it, baseRate()); break;
       case "slow": clearEcho(); if (BYID[id]) speak(BYID[id].it, 0.5); break;
       case "word": clearEcho(); speak(t.getAttribute("data-w"), 0.7); break;
