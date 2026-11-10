@@ -1,6 +1,6 @@
 # Piano Piano
 
-A gentle, one-step-at-a-time Italian tutor that runs in a single HTML file. No account, no install, no server.
+A gentle, one-step-at-a-time Italian tutor that runs in the browser (`index.html` is the landing page, `app.html` is the app). No account, no install, no server.
 
 Piano piano means "slowly, slowly" in Italian.
 
@@ -14,7 +14,7 @@ Piano piano means "slowly, slowly" in Italian.
 - **Short daily sessions** with spaced repetition (a Leitner box schedule) and a plain-language progress view.
 - **Lesson plan.** Say it first, then read it, then write it, unlocking at your own pace.
 - **Sound drills** for tricky sounds such as the single R, double letters, and "gli".
-- Twelve sets of everyday phrases, including offices, documents, and numbers.
+- Twelve sets of everyday phrases (59 in all), including offices, documents, and numbers, each with a starter memory trick.
 
 ## Privacy
 
@@ -25,7 +25,7 @@ Piano piano means "slowly, slowly" in Italian.
 
 ## Run it
 
-Open the link above, or open `index.html` in Chrome. Chrome will ask for microphone permission when you tap Record me.
+Open the link above, or open `app.html` in Chrome. Chrome will ask for microphone permission when you tap Record me.
 
 ## Built with
 
@@ -35,4 +35,4 @@ Built with Claude.
 
 ## License
 
-MIT
+Copyright (c) 2026 Michele Burns. All rights reserved. See `LICENSE`.
