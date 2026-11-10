@@ -4,7 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Piano Piano</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;600&display=swap">
+<meta name="description" content="Piano Piano: a gentle, one-word-at-a-time Italian tutor. Listen, read, record yourself and play it back.">
+<meta name="theme-color" content="#fbfaf6">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f4a3d'/%3E%3Cg fill='%23fff'%3E%3Crect x='7' y='12' width='3' height='8' rx='1.5'/%3E%3Crect x='12' y='8' width='3' height='16' rx='1.5'/%3E%3Crect x='17' y='5' width='3' height='22' rx='1.5'/%3E%3Crect x='22' y='10' width='3' height='12' rx='1.5'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
 <style>
 [hidden]{display:none!important}
 body{margin:0}
@@ -376,6 +381,138 @@ main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
 }
 .toast[hidden] { display: none; }
 .toast span { background: var(--ink); color: var(--bg); padding: 12px 18px; border-radius: 10px; font-weight: 700; max-width: 100%; }
+/* Refinement layer: quieter, more compact, editorial. Inter for the interface, Newsreader for Italian and headings. */
+:root {
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --bg: #f6f4ee; --surface: #ffffff; --ink: #1c231f; --ink-soft: #596359; --line: #e3dfd3;
+  --accent: #1f4a3d; --accent-ink: #ffffff; --accent-soft: #e9efe9; --stress: #a8392c;
+  --amber-bg: #f8efd9; --amber-line: #b78a2c; --focus: #1f6f57;
+  --nav-bg: #fbfaf6; --nav-ink: #1c231f; --nav-soft: #667068; --nav-line: #1f4a3d;
+  --shadow: 0 1px 1px rgba(28, 35, 31, 0.04), 0 1px 3px rgba(28, 35, 31, 0.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111613; --surface: #1a211d; --ink: #e8ede9; --ink-soft: #a7b3aa; --line: #2b352f;
+    --accent: #86c7ab; --accent-ink: #0b1510; --accent-soft: #1e2a24; --stress: #f0a093;
+    --amber-bg: #302a16; --amber-line: #cfa84a; --focus: #86c7ab;
+    --nav-bg: #151b17; --nav-ink: #e8ede9; --nav-soft: #98a69c; --nav-line: #86c7ab; --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111613; --surface: #1a211d; --ink: #e8ede9; --ink-soft: #a7b3aa; --line: #2b352f;
+  --accent: #86c7ab; --accent-ink: #0b1510; --accent-soft: #1e2a24; --stress: #f0a093;
+  --amber-bg: #302a16; --amber-line: #cfa84a; --focus: #86c7ab;
+  --nav-bg: #151b17; --nav-ink: #e8ede9; --nav-soft: #98a69c; --nav-line: #86c7ab; --shadow: none;
+}
+body { font-size: 0.97rem; line-height: 1.55; letter-spacing: 0; -webkit-font-smoothing: antialiased; padding-block: 0 56px; }
+.wrap { max-width: 700px; gap: 16px; padding-top: 28px; }
+main { gap: 16px; }
+h1 { font-family: var(--font-display); font-weight: 500; font-size: 1.85rem; line-height: 1.2; letter-spacing: -0.01em; }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; line-height: 1.3; letter-spacing: -0.005em; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* App bar */
+.top { background: var(--nav-bg); color: var(--nav-ink); border-bottom: 1px solid var(--line); }
+.top-in { max-width: 700px; }
+.mark { padding-block: 12px 2px; gap: 8px; }
+.logo { color: var(--accent); width: 20px; height: 14px; }
+.word { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; letter-spacing: -0.005em; }
+.tag { font-size: 0.8rem; color: var(--nav-soft); }
+.tabs { gap: 0; margin-inline: -10px; padding-inline: 4px; }
+.tabs a { min-height: 40px; padding: 0 10px; font-weight: 500; font-size: 0.86rem; border-bottom: 2px solid transparent; }
+.tabs a[aria-current="page"] { color: var(--nav-ink); border-bottom-color: var(--nav-line); font-weight: 600; }
+.top :focus-visible { outline-color: var(--focus); }
+.subnav { gap: 6px; margin-bottom: 10px; }
+.subnav a { min-height: 32px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--line); font-weight: 500; font-size: 0.85rem; }
+.subnav a[aria-current="page"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* Surfaces */
+.panel { border-radius: 10px; padding: 20px 22px; gap: 14px; box-shadow: var(--shadow); }
+.pagehead { gap: 4px; padding-bottom: 2px; }
+.lede { color: var(--ink-soft); }
+.grp { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; margin: 8px 0 -8px; }
+.mlabel, .msg .who { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; }
+.note, .hint, .date, .status, .count { font-size: 0.85rem; }
+details.tools { border-width: 1px; border-radius: 8px; }
+.speak { border-width: 1px; border-radius: 8px; }
+.breaknote, .fb { border-width: 1px; border-radius: 8px; }
+.modal { background: rgba(20, 28, 24, .5); }
+.mbox { border-radius: 12px; }
+.toast span { border-radius: 6px; font-weight: 500; font-size: 0.88rem; }
+
+/* Buttons */
+.btn { min-height: 38px; padding: 7px 15px; border-radius: 6px; border-width: 1px; font-weight: 500; font-size: 0.9rem; letter-spacing: 0.005em; transition: background-color .12s, border-color .12s; }
+.btn:hover { border-color: var(--ink-soft); background: var(--accent-soft); }
+.btn.primary { font-weight: 600; }
+.btn.primary:hover { filter: none; background: var(--accent); opacity: .92; }
+.btn.big { min-height: 42px; font-size: 0.92rem; padding-inline: 20px; }
+.btn.sm { min-height: 30px; padding: 4px 10px; font-size: 0.82rem; border-radius: 5px; }
+.btn.ghost { font-weight: 500; }
+.btn.rec { color: var(--stress); border-color: var(--stress); }
+.btn.rec:hover { background: transparent; }
+.btn.rec.on { background: var(--stress); color: #fff; }
+.link { min-height: 32px; font-size: inherit; text-underline-offset: 3px; }
+.chipbtn { min-height: 34px; padding: 5px 12px; border-width: 1px; font-size: 0.88rem; }
+.ck { font-size: 1rem; min-height: 38px; padding: 3px 11px; border-width: 1px; border-radius: 6px; font-weight: 500; }
+.keys .btn { min-width: 38px; min-height: 38px; font-size: 1rem; }
+.wbtn { font-size: 1.15rem; min-height: 38px; font-weight: 500; }
+.rate { gap: 8px; }
+.rate .btn { min-height: 44px; }
+.morelist .btn { padding: 12px 16px; }
+.sessnav .btn { min-width: 96px; }
+.row, .audio, .pact { gap: 8px; }
+@media (pointer: coarse) { .btn { min-height: 44px; } .btn.sm { min-height: 38px; } .tabs a { min-height: 44px; } }
+
+/* Italian text */
+.it { font-family: var(--font-display); font-weight: 500; font-size: 2.3rem; line-height: 1.2; letter-spacing: -0.01em; }
+.it.sm { font-size: 1.6rem; }
+.en { font-size: 1.05rem; }
+.en.big { font-family: var(--font-display); font-weight: 500; font-size: 1.7rem; line-height: 1.25; }
+.ph { font-size: 1.05rem; }
+.pit, .rit { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; }
+.pit { font-size: 1.2rem; }
+.w { border-bottom: 1px dotted var(--ink-soft); }
+.tip { border-radius: 6px; font-size: 0.9rem; padding: 9px 12px; }
+.hook, .chunkbox, .cannow { border-radius: 8px; }
+
+/* Lesson steps: a thin progress line instead of pills */
+.gsteps { gap: 18px; font-size: 0.78rem; margin-bottom: 4px; }
+.gsteps li { padding: 4px 0; border: 0; border-bottom: 2px solid var(--line); border-radius: 0; background: none; color: var(--ink-soft); font-weight: 500; letter-spacing: 0.02em; }
+.gsteps li.done { color: var(--ink); border-bottom-color: var(--ink-soft); }
+.gsteps li[aria-current="step"] { background: none; color: var(--ink); border-color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* Chips, counters, week dots */
+.chip { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.08em; padding: 2px 8px; }
+.dots { gap: 10px; }
+.dots span { font-size: 0.72rem; gap: 3px; }
+.dots i { width: 16px; height: 16px; border-width: 1.5px; }
+.facts { gap: 6px 32px; }
+.facts b { font-family: var(--font-display); font-weight: 500; font-size: 1.6rem; }
+.facts span { font-size: 0.78rem; }
+.bar { height: 5px; }
+.meter i { width: 18px; height: 6px; }
+.stage .snum { width: 24px; height: 24px; font-size: 0.8rem; }
+
+/* Forms */
+select, input[type="date"], input[type="time"], input[type="text"], .hbody select, textarea { min-height: 38px; padding: 7px 10px; border-width: 1px; border-radius: 6px; font-size: 0.92rem; }
+.mbox input { min-height: 44px; font-size: 1.05rem; border-width: 1px; border-radius: 6px; }
+.check { min-height: 36px; }
+.check input { width: 18px; height: 18px; }
+.plist li { padding: 12px 0; }
+.sess > summary, .help > summary { min-height: 46px; }
+.sess > summary::after, .help > summary::after { font-size: 1.15rem; }
+.bad { background: var(--accent-soft); }
+
+/* About */
+.about { color: var(--ink-soft); font-size: 0.85rem; }
+.about strong { color: var(--ink); font-weight: 600; }
+@media (max-width: 520px) {
+  .wrap { padding-top: 20px; gap: 14px; }
+  .panel { padding: 16px; }
+  h1 { font-size: 1.6rem; }
+  .it { font-size: 2rem; }
+}
 </style>
 </head>
 <body>
@@ -899,6 +1036,7 @@ main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
       '<h2 class="grp">Backup</h2><section class="panel"><h2>Save a backup of your progress</h2>' +
       '<p class="note">Your progress is stored in this browser. A backup file keeps it safe if Chrome is ever cleared. It stays on your Mac.</p>' +
       '<div class="row"><button type="button" class="btn" data-act="backupsave">Save backup file</button><label class="btn" for="restoreFile">Restore from a backup file</label><input type="file" id="restoreFile" accept=".json,application/json" class="sr"></div></section>' +
+      '<h2 class="grp">About</h2><section class="panel"><h2>About Piano Piano</h2><p class="about"><strong>Piano Piano</strong> is a gentle Italian tutor for learning one word at a time. Version 1.0.</p><p class="about"><strong>Privacy.</strong> Your progress is saved in this browser. Your recordings stay in this browser tab and are never uploaded. There is no account and no tracking.</p></section>' +
       '<h2 class="grp">Help</h2><section class="panel"><h2>What each tab does</h2><ul class="tips">' +
       tabRow("Today", "Your daily practice. Choose New words (only new phrases), Build on it (a few older phrases plus new ones), or a Quick session of 3 phrases for low-energy days") +
       tabRow("Practice", "Phrases (every phrase, with Listen and memory tricks), Listen (an audio playlist), Sound drills (one tricky sound at a time, such as R, GLI, or double letters), My word lists, and Which one?") +
@@ -1004,7 +1142,7 @@ main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
     var nextGoal = stageOpen("read") ? '<p class="hint"><strong>Next goal.</strong> Reading practice is open. Try it in the <a class="link" href="#plan">Lesson plan</a> when you like.</p>' : '<p class="hint"><strong>Next goal.</strong> ' + (kn0 ? "Know " + pl(10 - kn0, "more phrase") + " to open Read it." : "Know 10 phrases to open Read it.") + " You know " + kn0 + " now.</p>";
     var howTo = S.sessions.length ? "" : '<p class="mlabel">How a session works</p><ol class="howto"><li>Tap Start today\'s session.</li><li>Listen to the phrase, then say it out loud.</li><li>Tap how it felt. There are no wrong answers.</li></ol>';
     var gr = greeting();
-    var hero = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>Today</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button></div><p class="hint">Next up: ' + (rec === "mix" ? "Build on it" : "New words") + ". Just tap this and follow along.</p>" + nextGoal + howTo + quickLink + whereWasI() + weekDotsHTML() + reviewOnly + "</section>";
+    var hero = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>" + (S.sessions.length ? "Today" : "Welcome to Piano Piano") + "</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button></div><p class="hint">Next up: ' + (rec === "mix" ? "Build on it" : "New words") + ". Just tap this and follow along.</p>" + nextGoal + howTo + quickLink + whereWasI() + weekDotsHTML() + reviewOnly + "</section>";
     if (S.prefs.focus) {
       return hero + '<p class="note"><button type="button" class="link" data-act="unfocus">Show everything again</button></p>';
     }
@@ -2939,7 +3077,7 @@ main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
   setTimeout(function () { if (!voicesLoaded) { voicesLoaded = true; if (view === "today" && !sess && !doneEntry) render(); } }, 1500);
   applyPrefs();
   setInterval(tick, 1000);
-  if (!window.location.hash || window.location.hash === "#") { try { var sh0 = shakyCards(); glStart(sh0.length ? sh0[0].id : glPickNext()); } catch (e) {} }
+  if ((!window.location.hash || window.location.hash === "#") && S.sessions.length) { try { var sh0 = shakyCards(); glStart(sh0.length ? sh0[0].id : glPickNext()); } catch (e) {} }
   route();
   initCloud();
   initTutor();
