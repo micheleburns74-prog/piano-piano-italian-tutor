@@ -513,6 +513,43 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   h1 { font-size: 1.6rem; }
   .it { font-size: 2rem; }
 }
+
+/* Pass 2: flatter and quieter */
+body { font-size: 0.94rem; }
+.wrap { gap: 14px; padding-top: 24px; }
+main { gap: 14px; }
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.1rem; }
+.tabs a { font-size: 0.82rem; min-height: 38px; padding: 0 9px; }
+.word { font-size: 1.1rem; }
+.panel { border-radius: 6px; box-shadow: none; padding: 18px 20px; gap: 12px; border-color: var(--line); }
+.btn { min-height: 34px; padding: 5px 13px; border-radius: 5px; font-size: 0.85rem; background: transparent; }
+.btn:hover { background: var(--accent-soft); border-color: var(--line); }
+.btn.primary { background: var(--accent); border-color: var(--accent); }
+.btn.primary:hover { background: var(--accent); opacity: .9; }
+.btn.big { min-height: 38px; font-size: 0.88rem; padding-inline: 18px; }
+.btn.sm { min-height: 28px; padding: 3px 9px; font-size: 0.8rem; background: transparent; border-color: transparent; color: var(--ink-soft); }
+.btn.sm:hover { background: var(--accent-soft); color: var(--ink); border-color: transparent; }
+.btn.sm svg { color: var(--accent); }
+.btn.rec { background: transparent; }
+.btn:disabled { opacity: .5; }
+.subnav a { min-height: 28px; padding: 0 11px; font-size: 0.8rem; border-radius: 5px; background: transparent; }
+.subnav { margin-bottom: 6px; }
+.chip { border: 0 !important; background: var(--accent-soft) !important; color: var(--accent); font-size: 0.62rem; padding: 2px 7px; border-radius: 4px; }
+.chip.st-learn, .chip.r-almost { background: var(--amber-bg) !important; color: var(--ink); }
+.grp { margin-top: 10px; }
+.plist li, .rows li { padding-block: 10px; }
+.it { font-size: 2.1rem; }
+.facts b { font-size: 1.45rem; }
+.dots i { width: 13px; height: 13px; }
+.gsteps { font-size: 0.74rem; gap: 14px; }
+select, input[type="date"], input[type="time"], input[type="text"], .hbody select, textarea { min-height: 34px; font-size: 0.88rem; border-radius: 5px; }
+.hook, .chunkbox, .cannow, .tip { border-radius: 5px; }
+.speak, .breaknote, .fb, details.tools { border-radius: 5px; }
+.mbox { border-radius: 8px; }
+.rate .btn { min-height: 40px; }
+.lede, .q { font-size: 0.92rem; }
+@media (pointer: coarse) { .btn { min-height: 42px; } .btn.sm { min-height: 36px; } }
 </style>
 </head>
 <body>
