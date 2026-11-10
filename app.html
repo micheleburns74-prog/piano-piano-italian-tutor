@@ -555,6 +555,11 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
 .foot a { color: var(--ink-soft); text-underline-offset: 3px; }
 .welcome label { font-weight: 500; font-size: 0.85rem; }
 .welcome h1 { text-wrap: balance; }
+
+/* Quiet mode: no explanations of what the app does (screens only, never inside a lesson) */
+.keep { color: var(--ink-soft); font-size: 0.85rem; margin: 0; }
+[data-quiet="1"] .lede, [data-quiet="1"] .hint, [data-quiet="1"] .note { display: none !important; }
+[data-quiet="1"] .welcome .lede { display: block !important; }
 </style>
 </head>
 <body>
@@ -1173,25 +1178,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       '<p class="note">Your progress is stored in this browser. A backup file keeps it safe if Chrome is ever cleared. It stays on your computer.</p>' +
       '<div class="row"><button type="button" class="btn" data-act="backupsave">Save backup file</button><label class="btn" for="restoreFile">Restore from a backup file</label><input type="file" id="restoreFile" accept=".json,application/json" class="sr"></div></section>' +
       '<h2 class="grp">This browser</h2><section class="panel"><h2>What works here</h2><ul class="tips">' + browserCheckHTML() + "</ul></section>" +
-      '<h2 class="grp">About</h2><section class="panel"><h2>About Piano Piano</h2><p class="about"><strong>Piano Piano</strong> is a gentle Italian tutor for learning one word at a time. Version ' + VERSION + '.</p><p class="about"><strong>Privacy.</strong> Your progress is saved in this browser. Your recordings stay in this browser tab and are never uploaded. There is no account and no tracking.</p></section>' +
-      '<h2 class="grp">Help</h2><section class="panel"><h2>What each tab does</h2><ul class="tips">' +
-      tabRow("Today", "Your daily practice. Choose New words (only new phrases), Build on it (a few older phrases plus new ones), or a Quick session of 3 phrases for low-energy days") +
-      tabRow("Practice", "Phrases (every phrase, with Listen and memory tricks), Listen (an audio playlist), Sound drills (one tricky sound at a time, such as R, GLI, or double letters), My word lists, and Which one?") +
-      tabRow("Lesson plan", "Three stages. Say it comes first. Read it and Write it open when you know 10 phrases, or sooner if you choose") +
-      tabRow("Coach", "What to work on next, one-tap guided lessons for shaky phrases") +
-      tabRow("My progress", "This week compared with last week, the phrases that are still shaky, your counters, and every finished session") +
-      tabRow("Settings", "This page") +
-      "</ul></section>" +
-      '<section class="panel"><h2>Good to know</h2><ul class="tips">' +
-      "<li>Tap any Italian word to hear it on its own.</li>" +
-      "<li>Listen plays at an easy pace. Slow plays at half speed.</li>" +
-      "<li>A soft R is fine. You do not need to roll it.</li>" +
-      "<li>Say it in chunks plays the end of a phrase first, then more and more of it, until you hear the whole thing. Tap any piece to hear it alone.</li>" +
-      "<li>Record and hear myself lets you record yourself and play it back next to the Italian. It stays in your browser and is never uploaded. It is for your own ears, not a score.</li>" +
-      "<li>The page cannot hear you. When you say a phrase out loud, tap I said it out loud so it counts.</li>" +
-      "<li>Spellings like bwohn-JOHR-noh show how to say a word in English letters. The red capital letters are the part to stress.</li>" +
-      "<li>Your progress saves by itself on this device. The line at the bottom of the page says where it was saved.</li>" +
-      "</ul></section>";
+      '<h2 class="grp">About</h2><section class="panel"><h2>About Piano Piano</h2><p class="about">Version ' + VERSION + '.</p><p class="about"><strong>Privacy.</strong> Your progress is saved in this browser. Your recordings stay in this browser tab and are never uploaded. There is no account and no tracking.</p></section>';
   }
 
   function previewRows(list) {
@@ -1230,7 +1217,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (!last) return "";
     var names = (last.learned || []).filter(function (id) { return BYID[id]; }).slice(0, 3).map(function (id) { return BYID[id].it; });
     var gap = daysSinceActive(), when = gap <= 0 ? "Earlier today" : gap === 1 ? "Yesterday" : "Last time";
-    return '<p class="hint"><strong>Where you were.</strong> ' + when + (names.length ? " you met " + names.join(", ") + "." : " you practiced.") + " Today you will review them and move on a little.</p>";
+    return '<p class="keep"><strong>Where you were.</strong> ' + when + (names.length ? " you met " + names.join(", ") + "." : " you practiced.") + " Today you will review them and move on a little.</p>";
   }
   function welcomeHTML() {
     return '<section class="panel welcome"><p class="mlabel">Welcome</p><h1>Learn Italian, one word at a time</h1>' +
@@ -1286,8 +1273,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var more = S.prefs.focus ? "" : friday + '<p class="note"><button type="button" class="link" data-act="focuson">Too much on screen? Show only the Start button</button></p>';
     var facts = '<ul class="facts" aria-label="Your progress"><li><b>' + daysPracticed() + "</b><span>days practiced</span></li><li><b>" + S.sessions.length + "</b><span>sessions finished</span></li><li><b>" + totalSaid() + "</b><span>times spoken aloud</span></li><li><b>" + knownCount() + "</b><span>phrases you know</span></li></ul>";
     var kn0 = knownCount();
-    var nextGoal = stageOpen("read") ? '<p class="hint"><strong>Next goal.</strong> Reading practice is open. Try it in the <a class="link" href="#plan">Lesson plan</a> when you like.</p>' : '<p class="hint"><strong>Next goal.</strong> ' + (kn0 ? "Know " + pl(10 - kn0, "more phrase") + " to open Read it." : "Know 10 phrases to open Read it.") + " You know " + kn0 + " now.</p>";
-    var howTo = S.sessions.length ? "" : '<p class="mlabel">How a session works</p><ol class="howto"><li>Tap Start today\'s session.</li><li>Listen to the phrase, then say it out loud.</li><li>Tap how it felt. There are no wrong answers.</li></ol>';
+    var nextGoal = stageOpen("read") ? '<p class="keep"><strong>Next goal.</strong> Reading practice is open. Try it in the <a class="link" href="#plan">Lesson plan</a> when you like.</p>' : '<p class="keep"><strong>Next goal.</strong> ' + (kn0 ? "Know " + pl(10 - kn0, "more phrase") + " to open Read it." : "Know 10 phrases to open Read it.") + " You know " + kn0 + " now.</p>";
+    var howTo = "";
     var gr = greeting();
     var hero = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>" + (S.sessions.length ? "Today" : "Welcome to Piano Piano") + "</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button></div><p class="hint">Next up: ' + (rec === "mix" ? "Build on it" : "New words") + ". Just tap this and follow along.</p>" + nextGoal + howTo + quickLink + whereWasI() + weekDotsHTML() + reviewOnly + "</section>";
     if (S.prefs.focus) {
@@ -1609,6 +1596,10 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["lists", "My word lists"], ["pairs", "Which one?"]];
   function render() {
     applyPersonal();
+    try {
+      var busy = !!(sess || doneEntry || gl || rd || pq || (dict && !dict.done));
+      app.setAttribute("data-quiet", (!busy && view !== "pairs" && view !== "lesson") ? "1" : "0");
+    } catch (e) {}
     stopEcho();
     var hd = app.querySelector("details.help");
     if (hd) helpOpen = hd.open;
@@ -2181,7 +2172,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   function weekSoundHTML() {
     var sd = weekSound(), n = (S.sounds[sd.id] && S.sounds[sd.id].n) || 0;
-    return '<section class="panel"><div class="mhead"><h2>Sound of the week</h2><span class="chip">' + esc(sd.title) + '</span></div><p class="lede">' + esc(sd.tip) + '</p>' +
+    return '<section class="panel"><div class="mhead"><h2>Sound of the week</h2><span class="chip">' + esc(sd.title) + '</span></div><p class="keep">' + esc(sd.tip) + '</p>' +
       '<p class="hint">Practiced <b id="snd-' + sd.id + '">' + n + '</b> times. A few minutes, a few times this week is plenty.</p>' +
       '<div class="row"><button type="button" class="btn primary" data-act="sounddrill" data-id="' + sd.id + '">Hear the words slowly</button><button type="button" class="btn" data-act="sound" data-id="' + sd.id + '">I practiced this sound</button><a class="btn ghost" href="#sounds">All sounds</a></div></section>';
   }
