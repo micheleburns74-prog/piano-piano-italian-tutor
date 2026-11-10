@@ -4,6 +4,8 @@ A gentle, one-step-at-a-time Italian tutor that runs in a single HTML file. No a
 
 Piano piano means "slowly, slowly" in Italian.
 
+**Try it:** https://micheleburns74-prog.github.io/piano-piano-italian-tutor/
+
 ## What it does
 
 - **Guided word lesson.** One word at a time: meaning, listening, reading (syllables with the stressed one in bold), speaking, and using it.
@@ -23,7 +25,7 @@ Piano piano means "slowly, slowly" in Italian.
 
 ## Run it
 
-Open `index.html` in Chrome. Chrome will ask for microphone permission when you tap Record me.
+Open the link above, or open `index.html` in Chrome. Chrome will ask for microphone permission when you tap Record me.
 
 ## Built with
 
