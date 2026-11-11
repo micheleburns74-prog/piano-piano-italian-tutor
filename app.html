@@ -2463,7 +2463,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       var r = new SR(); r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = false;
       r.onresult = function (e) { var alts = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript); h.fb = { alts: alts }; };
       r.onerror = function (e) { h.fb = { err: (e && e.error) || "error" }; };
-      r.onend = function () { h.fbBusy = false; if (!h.fb) h.fb = { alts: [] }; recState.sr = null; again(); };
+      var began = false; r.onstart = function () { began = true; };
+      r.onend = function () { h.fbBusy = false; if (!h.fb) h.fb = began ? { alts: [] } : { err: "unavailable" }; recState.sr = null; again(); };
       recState.sr = r; r.start();
     } catch (e) { h.fbBusy = false; }
   }
@@ -2474,7 +2475,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (!S.prefs.check) return '<div class="row"><button type="button" class="btn sm" ' + on + '>Turn on pronunciation check</button></div><p class="note">Chrome sends your voice to Google’s speech service to do the check.</p>';
     if (h.fbBusy) return '<p class="hint" role="status">Checking…</p>';
     var f = h.fb; if (!f) return "";
-    if (f.err === "not-allowed" || f.err === "service-not-allowed") return '<p class="note">The pronunciation check could not use the microphone. Allow it in the address bar and try again.</p>';
+    if (f.err === "not-allowed") return '<p class="note">The pronunciation check could not use the microphone. Allow it in the address bar and try again.</p>';
+    if (f.err === "unavailable" || f.err === "service-not-allowed") return '<p class="note">' + (location.protocol === "file:" ? 'Chrome does not run the pronunciation check on a file opened from your computer. Open Piano Piano from its web link instead.' : 'The pronunciation check could not start. Check that the microphone is allowed for this page, then try again.') + '</p>';
     if (f.err === "network") return '<p class="note">The pronunciation check needs an internet connection. Your recording still works.</p>';
     if (f.err && f.err !== "no-speech" && f.err !== "aborted") return '<p class="note">The pronunciation check is not working right now. Your recording still works.</p>';
     if (!f.alts || !f.alts.length || !f.alts[0]) return '<p class="tip"><strong>I could not hear a word.</strong> Move a little closer and say it again.</p>';
