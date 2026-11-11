@@ -1173,6 +1173,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       '<h2 class="grp">Sound</h2><section class="panel hbody"><h2>Voice</h2><p class="note">The page reads Italian aloud using a voice that is built into your phone or computer.</p>' + voiceBlock +
       '<label class="check"><input type="checkbox" id="autoSel"' + (S.auto ? " checked" : "") + "> Play each phrase automatically</label>" +
       '<label class="check"><input type="checkbox" id="chkSel"' + (S.prefs.check ? " checked" : "") + (SR ? "" : " disabled") + "> Check my pronunciation when I record (Chrome sends your voice to Google\u2019s speech service)</label>" +
+      '<label for="cvSel">Voice for spoken coaching</label><select id="cvSel">' + opt("en", "English voice", S.prefs.coachVoice || "en") + opt("it", "Italian voice speaking English (Italian accent)", S.prefs.coachVoice || "en") + "</select>" +
       '<label class="check"><input type="checkbox" id="coachSel"' + (S.prefs.coach === false ? "" : " checked") + "> Spoken coaching lines in English</label>" +
       '<p class="note">Short spoken lines like "Almost. Listen to this word." Turn this off to hear only the Italian.</p>' +
       '<p class="note">When this is on, a phrase is read aloud as soon as it appears. Turn it off if you would rather tap Listen yourself.</p>' +
@@ -2025,6 +2026,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     else if (id === "rateSel") pr.rate = Number(v) || 0.85;
     else if (id === "coachSel") pr.coach = !!t.checked;
     else if (id === "chkSel") pr.check = !!t.checked;
+    else if (id === "cvSel") pr.coachVoice = v === "it" ? "it" : "en";
     else if (id === "perSel") pr.per = Number(v) === 5 ? 5 : 3;
     else if (id === "nameInp") { pr.name = String(v || "").trim().slice(0, 24); applyPersonal(); }
     else if (id === "namePhInp") { pr.namePh = String(v || "").trim().slice(0, 40); applyPersonal(); }
@@ -2459,6 +2461,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var again = function () { if (h.re) h.re(); else render(); };
     if (!micOK()) { h.mic = "blocked"; again(); return; }
     h.recs = h.recs || {};
+    fbToken++; try { if (recState.sr) { var old = recState.sr; recState.sr = null; old.abort(); } } catch (e) {}
+    try { window.speechSynthesis.cancel(); } catch (e) {}
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
       var chunks = [], mr = new MediaRecorder(stream);
       mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
@@ -2478,6 +2482,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     clearEcho(); try { window.speechSynthesis.cancel(); } catch (e) {}
     try { var a = new Audio(r.url); var pr = a.play(); if (pr && pr.catch) pr.catch(function () { toast("Could not play the recording."); }); } catch (e) { toast("Could not play the recording."); }
   }
+  var fbToken = 0;
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   function nrm(x) { return String(x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim(); }
   function lev(a, b) {
@@ -2491,22 +2496,24 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     h.fb = null; h.fbBusy = true;
     try {
       var r = new SR(); r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = false;
-      r.onresult = function (e) { var alts = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript); h.fb = { alts: alts }; };
-      r.onerror = function (e) { h.fb = { err: (e && e.error) || "error" }; };
+      r.onresult = function (e) { if (recState.sr !== r) return; var alts = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript); h.fb = { alts: alts }; };
+      r.onerror = function (e) { if (recState.sr !== r) return; h.fb = { err: (e && e.error) || "error" }; };
       var began = false; r.onstart = function () { began = true; };
-      r.onend = function () { h.fbBusy = false; if (!h.fb) h.fb = began ? { alts: [] } : { err: "unavailable" }; recState.sr = null; again(); try { fbSay(h); } catch (e) {} };
-      recState.sr = r; r.start();
+      r.onend = function () { if (recState.sr !== r) return; h.fbBusy = false; if (!h.fb) h.fb = began ? { alts: [] } : { err: "unavailable" }; recState.sr = null; again(); try { fbSay(h); } catch (e) {} };
+      recState.sr = r; setTimeout(function () { if (recState.sr === r) { try { r.start(); } catch (e) { h.fbBusy = false; recState.sr = null; again(); } } }, 250);
     } catch (e) { h.fbBusy = false; }
   }
   function fbSay(h) {
     var f = h.fb, c = chkCard(h); if (!f || f.err || !c) return;
+    var tok = fbToken;
     if (!f.alts || !f.alts[0]) { speakEn("I could not hear you. Try again.", null, true); return; }
     var t = nrm(c.it).replace(/ /g, ""), best = "", bd = 1e9;
     f.alts.forEach(function (a) { var n = nrm(a).replace(/ /g, ""), d = lev(n, t); if (d < bd) { bd = d; best = n; } });
     if (bd === 0) { speakEn("That sounded right.", null, true); return; }
     var syls = glSyl(c), miss = syls.filter(function (x) { var n = nrm(x.t); return n && best.indexOf(n) < 0; });
     speakEn("Not quite. Listen.", function () {
-      speak(c.it, 0.6, function () { if (miss.length && syls.length > 1) speakEn("Try this part.", function () { speak(miss[0].t, 0.5); }, true); });
+      if (tok !== fbToken) return;
+      speak(c.it, 0.6, function () { if (tok === fbToken && miss.length && syls.length > 1) speakEn("Try this part.", function () { if (tok === fbToken) speak(miss[0].t, 0.5); }, true); });
     }, true);
   }
   function fbHTML(h, key) {
@@ -2895,6 +2902,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       var u = new SpeechSynthesisUtterance(text);
       u.lang = "en-US";
       var ev = enVoice(); if (ev) { u.voice = ev; u.lang = ev.lang; }
+      if (S.prefs.coachVoice === "it" && voice) { u.voice = voice; u.lang = voice.lang; }
       u.rate = 0.95;
       var fired = false, fin = function () { if (fired) return; fired = true; if (onend) onend(); };
       u.onend = fin; u.onerror = fin;
