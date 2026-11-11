@@ -565,6 +565,12 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
 .rows li .ren, .mode .rows li .ren { flex: none; }
 .rows li .pact, .mode .rows li .pact { margin: 6px 0 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .pact .btn { white-space: nowrap; }
+/* Say it page */
+.beats { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 10px 0; }
+.beat { font-size: 1.1rem; padding: 12px 18px; min-width: 56px; }
+.beat.st { font-size: 1.5rem; font-weight: 700; padding: 16px 24px; }
+.beat.tick { background: var(--accent, #1f4d3d); color: #fff; }
+.cues { margin: 8px 0 0; padding-left: 1.2em; display: grid; gap: 8px; }
 </style>
 </head>
 <body>
@@ -1144,7 +1150,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return '<header class="top"><div class="top-in"><div class="mark"><svg class="logo" viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" focusable="false" fill="currentColor"><rect x="1" y="7" width="3" height="6" rx="1.5"/><rect x="7" y="3" width="3" height="14" rx="1.5"/><rect x="13" y="0" width="3" height="20" rx="1.5"/><rect x="19" y="4" width="3" height="12" rx="1.5"/><rect x="25" y="7" width="3" height="6" rx="1.5"/></svg><span class="word">Piano Piano</span><span class="tag">Italian, a little at a time</span></div>' +
       '<nav class="tabs" aria-label="Sections">' + (S.prefs.simple || S.prefs.focus
         ? tab("today", "Today") + '<a href="#more"' + (view !== "today" ? ' aria-current="page"' : "") + ">More</a>"
-        : tab("today", "Today") + tabG(["phrases", "listening", "sounds", "lists", "pairs"], "phrases", "Practice") + tabG(["plan", "lesson"], "plan", "Lesson plan") + tab("tutor", "Coach") + tabG(["progress", "sessions"], "progress", "My progress") + tab("settings", "Settings")) + "</nav></div></header>";
+        : tab("today", "Today") + tabG(["phrases", "listening", "sounds", "say", "lists", "pairs"], "phrases", "Practice") + tabG(["plan", "lesson"], "plan", "Lesson plan") + tab("tutor", "Coach") + tabG(["progress", "sessions"], "progress", "My progress") + tab("settings", "Settings")) + "</nav></div></header>";
   }
 
   function browserCheckHTML() {
@@ -1234,6 +1240,88 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       '<label for="wPer">New phrases per session</label><select id="wPer"><option value="3">3 (recommended)</option><option value="5">5</option></select>' +
       '<div><button type="button" class="btn primary big" data-act="setup">Begin</button></div>' +
       '<p class="note">Everything stays on this device. No account. Your recordings are never uploaded, unless you turn on the pronunciation check, which uses Chrome\u2019s speech service. You can change all of this in Settings.</p></section>';
+  }
+  var sayId = "", echoTok = 0, beepCtx = null, rhythmTok = 0;
+  function beep(freq, dur, vol) {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext; if (!beepCtx) beepCtx = new AC();
+      var o = beepCtx.createOscillator(), g = beepCtx.createGain();
+      o.frequency.value = freq; g.gain.value = vol; o.connect(g); g.connect(beepCtx.destination);
+      o.start(); g.gain.exponentialRampToValueAtTime(0.0001, beepCtx.currentTime + dur); o.stop(beepCtx.currentTime + dur);
+    } catch (e) {}
+  }
+  function stressIdx(c) {
+    var sy = glSyl(c), k = -1; sy.forEach(function (x, i) { if (x.st) k = i; });
+    return k >= 0 ? k : (sy.length >= 2 ? sy.length - 2 : 0);
+  }
+  function joinSyl(sy) { var tx = ""; sy.forEach(function (x, i) { tx += (i && x.sp ? " " : "") + x.t; }); return tx; }
+  function cuesFor(c) {
+    var t = c.it.toLowerCase(), l = t.replace(/[^a-zà-ÿ]/g, ""), out = [];
+    if (/(.)\1/.test(l)) out.push("Double letters: hold that sound one beat longer. Tap your finger once on the table while you hold it.");
+    if (/[ptk]|c[aou]|ch/.test(l)) out.push("P, T and hard C are gentle in Italian. Hold a strip of paper in front of your mouth: it should barely move.");
+    if (/r/.test(l)) out.push("R: tap the tip of your tongue once, just behind your top teeth. A soft R is fine.");
+    if (/[bdgvz]/.test(l)) out.push("B, D, G, V and Z buzz. Put your hand on your throat: you should feel a hum.");
+    if (/gli/.test(l)) out.push("GLI: say it like the middle of the word million.");
+    if (/gn/.test(l)) out.push("GN: say it like the NY in canyon.");
+    if (/c[ie]/.test(l)) out.push("C before I or E sounds like CH, as in chair.");
+    if (/g[ie]/.test(l)) out.push("G before I or E sounds like J, as in jam.");
+    out.push("Keep each vowel clean and steady. Look in a mirror: your mouth should hold one shape for the whole vowel, with no sliding.");
+    out.push("Stress: put your hand under your chin. It drops a little on the stressed piece.");
+    return out.slice(0, 5);
+  }
+  function echoNote(m) { var el = document.getElementById("echoMsg"); if (el) el.textContent = m; }
+  function echoDrill(text, cnt) {
+    var tok = ++echoTok, n = 0;
+    (function round() {
+      if (tok !== echoTok) return;
+      if (n >= cnt) { echoNote("Done. Now say it once more on your own."); return; }
+      n++; echoNote("Listen (" + n + " of " + cnt + ")");
+      speak(text, 0.55, function () {
+        if (tok !== echoTok) return;
+        echoNote("Your turn. Say it now.");
+        setTimeout(round, Math.max(2500, text.length * 400));
+      });
+    })();
+  }
+  function rhythmRun(c) {
+    var sy = glSyl(c), st = stressIdx(c), tok = ++rhythmTok;
+    sy.forEach(function (x, i) {
+      setTimeout(function () {
+        if (tok !== rhythmTok) return;
+        beep(i === st ? 520 : 330, i === st ? 0.28 : 0.14, i === st ? 0.35 : 0.14);
+        var els = document.querySelectorAll("#beats .beat"); els.forEach(function (e, k) { e.classList.toggle("tick", k === i); });
+        setTimeout(function () { els.forEach(function (e) { e.classList.remove("tick"); }); }, 300);
+      }, i * 700);
+    });
+  }
+  function sayHTML() {
+    var c = sayId && BYID[sayId];
+    if (!c) {
+      var h = '<section class="pagehead"><h1>Say it</h1><p class="lede">Pick a word to practice saying, one small piece at a time.</p></section>';
+      SETS.forEach(function (st, si) {
+        h += '<section class="panel"><h2>Set ' + (si + 1) + ": " + esc(st.title) + '</h2><ul class="rows">' + CARDS.filter(function (x) { return x.set === si; }).map(function (x) {
+          return '<li><span class="rit" lang="it">' + esc(x.it) + '</span><span class="ren">' + esc(x.en) + '</span><span class="pact"><button type="button" class="btn sm primary" data-act="sayword" data-id="' + x.id + '">Practice saying</button></span></li>';
+        }).join("") + "</ul></section>";
+      });
+      return h;
+    }
+    var sy = glSyl(c), n = sy.length, st = stressIdx(c), steps = [];
+    for (var k = n - 1; k >= 0; k--) steps.push(joinSyl(sy.slice(k)));
+    var btn = function (label, act, data, cls) { return '<button type="button" class="btn sm ' + (cls || "") + '" data-act="' + act + '"' + data + ">" + label + "</button>"; };
+    var h2 = '<section class="pagehead"><h1 lang="it">' + esc(c.it) + '</h1><p class="ph">' + phHTML(c.ph) + '</p><p class="lede">' + esc(c.en) + '</p></section>' +
+      '<section class="panel"><div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"') + btn("Slow", "slow", ' data-id="' + c.id + '"') + btn("Record me", "sayopen", ' data-id="' + c.id + '"') + "</div></section>";
+    if (n > 1) {
+      h2 += '<section class="panel"><h2>Build it from the end</h2><ul class="rows">' + steps.map(function (tx) {
+        return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Echo", "echo", ' data-t="' + esc(tx) + '" data-n="2"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
+      }).join("") + "</ul></section>";
+    }
+    h2 += '<section class="panel"><h2>Echo practice</h2><p class="hint">I say it slowly, then wait while you say it. Three times.</p><div class="audio">' + btn("Echo the whole word", "echo", ' data-t="' + esc(c.it) + '" data-n="3"', "primary") + btn("Stop", "echostop", "") + '</div><p class="tip" id="echoMsg" role="status" aria-live="polite">Ready when you are.</p></section>';
+    h2 += '<section class="panel"><h2>Tap the beats</h2><p class="hint">Tap each piece as you say it. The bigger one is the stressed piece.</p><div class="beats" id="beats">' + sy.map(function (x, i) {
+      return '<button type="button" class="btn beat' + (i === st ? " st" : "") + '" data-act="beat" data-st="' + (i === st ? 1 : 0) + '" lang="it">' + esc(x.t) + "</button>";
+    }).join("") + '</div><div class="audio">' + btn("Hear the rhythm", "rhythm", ' data-id="' + c.id + '"') + "</div></section>";
+    h2 += '<section class="panel"><h2>Body cues</h2><ul class="cues">' + cuesFor(c).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></section>";
+    h2 += '<p><button type="button" class="link" data-act="saylist">All words</button>' + (gl && gl.id === c.id ? ' &middot; <a class="link" href="#lesson">Back to the lesson</a>' : "") + ' &middot; <a class="link" href="#today">Back to Today</a></p>';
+    return h2;
   }
   function allHTML() {
     var h = '<section class="pagehead"><h1>All lessons</h1></section>';
@@ -1613,7 +1701,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
 
   /* ---------- Render and routing ---------- */
-  var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["lists", "My word lists"], ["pairs", "Which one?"]];
+  var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["say", "Say it"], ["lists", "My word lists"], ["pairs", "Which one?"]];
   function render() {
     applyPersonal();
     try {
@@ -1623,9 +1711,9 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     stopEcho();
     var hd = app.querySelector("details.help");
     if (hd) helpOpen = hd.open;
-    var body = view === "phrases" ? phrasesHTML() : view === "progress" ? progressHTML() : view === "tutor" ? tutorHTML() : view === "listening" ? listeningHTML() : view === "plan" ? planHTML() : view === "lesson" ? lessonHTML() : view === "sounds" ? soundsHTML() : view === "all" ? allHTML() : view === "lists" ? listsHTML() : view === "pairs" ? pairsHTML() : view === "more" ? moreHTML() : view === "sessions" ? sessionsHTML() : view === "settings" ? settingsHTML() : todayHTML();
+    var body = view === "phrases" ? phrasesHTML() : view === "progress" ? progressHTML() : view === "tutor" ? tutorHTML() : view === "listening" ? listeningHTML() : view === "plan" ? planHTML() : view === "lesson" ? lessonHTML() : view === "sounds" ? soundsHTML() : view === "all" ? allHTML() : view === "say" ? sayHTML() : view === "lists" ? listsHTML() : view === "pairs" ? pairsHTML() : view === "more" ? moreHTML() : view === "sessions" ? sessionsHTML() : view === "settings" ? settingsHTML() : todayHTML();
     if (view === "listening" && !(dict && !dict.done)) body = subNav(PRACTICE_NAV) + body;
-    else if (view === "phrases" || view === "sounds" || view === "lists" || view === "pairs") body = subNav(PRACTICE_NAV) + body;
+    else if (view === "phrases" || view === "sounds" || view === "say" || view === "lists" || view === "pairs") body = subNav(PRACTICE_NAV) + body;
     else if (view === "progress" || view === "sessions") body = subNav([["progress", "This week"], ["sessions", "Finished sessions"]]) + body;
     app.innerHTML = headerHTML() + '<div class="wrap"><main id="main">' + body + '</main><p class="status" id="status">' + esc(statusText) + '</p><footer class="foot">Piano Piano ' + VERSION + ' &middot; <a href="https://micheleburns74-prog.github.io/piano-piano-italian-tutor/#privacy" target="_blank" rel="noopener">Privacy and terms</a> &middot; <a href="https://github.com/micheleburns74-prog/piano-piano-italian-tutor/issues" target="_blank" rel="noopener">Send feedback</a></footer></div>';
     try {
@@ -1640,7 +1728,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   function route() {
     var h = (window.location.hash || "").replace("#", "");
-    var okv = { all: 1, lesson: 1, plan: 1, pairs: 1, lists: 1, phrases: 1, tutor: 1, progress: 1, listening: 1, sounds: 1, sessions: 1, settings: 1, more: 1 };
+    var okv = { say: 1, all: 1, lesson: 1, plan: 1, pairs: 1, lists: 1, phrases: 1, tutor: 1, progress: 1, listening: 1, sounds: 1, sessions: 1, settings: 1, more: 1 };
     view = okv[h] ? h : "today";
     if (view !== "listening" && plState.on) plStop(true);
     if (view === "listening" && dict && dict.done) dict = null;
@@ -1688,7 +1776,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       '<p class="it" lang="it" style="font-size:1.6rem;margin:0">' + esc(c.it) + '</p><p class="hint" style="margin:0">' + esc(c.en) + '</p>' +
       '<div class="audio"><button type="button" class="btn" data-m="hear" data-id="' + sm.id + '">Hear the Italian</button>' +
       (on ? '<button type="button" class="btn rec on" data-m="recstop">Stop recording</button>' : '<button type="button" class="btn rec" data-m="rec">\u25cf Record me</button>') +
-      '<button type="button" class="btn" data-m="recplay"' + (has ? "" : " disabled") + ">Play my recording</button></div>" +
+      '<button type="button" class="btn" data-m="recplay"' + (has ? "" : " disabled") + ">Play my recording</button>" + (has ? '<button type="button" class="btn" data-m="cmp">Model, then me</button>' : "") + "</div>" +
       (on ? '<p class="hint" role="status">Recording. Say it, then tap Stop.</p>' : "") +
       (sm.mic === "denied" ? '<p class="note">The microphone is turned off for this page. Click the lock icon in the address bar, allow the microphone, then tap Record me again.</p>' : sm.mic === "blocked" ? '<p class="note">This view does not allow the microphone. Open Piano Piano in Chrome, Edge or Safari on a computer or phone.</p>' : has ? '<p class="note">' + (S.prefs.check ? 'Your recording stays in this tab. The pronunciation check uses Chrome\u2019s speech service (Google).' : 'Your recording stays in this tab and is never uploaded.') + '</p>' : "") + fbHTML(sm, "w") +
       '<div class="row"><button type="button" class="btn ghost" data-m="close">Close</button></div>';
@@ -1707,6 +1795,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     else if (m === "rec") recStart("w", sm);
     else if (m === "recstop") recStop();
     else if (m === "recplay") recPlay("w", sm);
+    else if (m === "cmp") { var cc = sm.card || BYID[sm.id]; if (cc) speak(cc.it, 0.6, function () { recPlay("w", sm); }); }
     else if (m === "chkon") { S.prefs.check = true; persist(); renderSay(); }
     else if (m === "hear" && (sm.card || BYID[id])) speak((sm.card || BYID[id]).it, baseRate());
     else if (m === "word") { stopEcho(); speak(t.getAttribute("data-t"), 0.6); }
@@ -1811,6 +1900,14 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       case "glword": if (BYID[id]) glStart(id); break;
       case "sayme": openSay("snd:" + t.getAttribute("data-t"), { it: t.getAttribute("data-t"), ph: t.getAttribute("data-p") || "", en: t.getAttribute("data-e") || "" }); break;
       case "resumesess": showHome = false; render(); break;
+      case "sayword": sayId = t.getAttribute("data-id"); if (view === "say") render(); else window.location.hash = "#say"; break;
+      case "saylist": sayId = ""; echoTok++; render(); break;
+      case "speakslow": speak(t.getAttribute("data-t"), 0.55); break;
+      case "echo": echoDrill(t.getAttribute("data-t"), Number(t.getAttribute("data-n")) || 2); break;
+      case "echostop": echoTok++; echoNote("Stopped."); break;
+      case "beat": beep(t.getAttribute("data-st") === "1" ? 520 : 330, t.getAttribute("data-st") === "1" ? 0.28 : 0.14, t.getAttribute("data-st") === "1" ? 0.35 : 0.14); break;
+      case "rhythm": if (BYID[t.getAttribute("data-id")]) rhythmRun(BYID[t.getAttribute("data-id")]); break;
+      case "sayform": openSay("frm:" + t.getAttribute("data-t"), { it: t.getAttribute("data-t"), ph: "", en: "", noCheck: true }); break;
       case "listen": clearEcho(); if (BYID[id]) speak(BYID[id].it, baseRate()); break;
       case "slow": clearEcho(); if (BYID[id]) speak(BYID[id].it, 0.5); break;
       case "word": clearEcho(); speak(t.getAttribute("data-w"), 0.7); break;
@@ -2432,6 +2529,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (g === "rec") { recStart(t.getAttribute("data-key")); return; }
     if (g === "recstop") { recStop(); return; }
     if (g === "recplay") { recPlay(t.getAttribute("data-key")); return; }
+    if (g === "cmp") { var ck = t.getAttribute("data-key"), tg = chkTarget(gl, ck === "piece" ? "piece" : "word"); if (tg) speak(tg.text, 0.6, function () { recPlay(ck); }); return; }
+    if (g === "saytools") { sayId = gl.id; window.location.hash = "#say"; return; }
     if (g === "tpiece") { glTr("say"); gl.tsy = parseInt(t.getAttribute("data-i"), 10) || 0; gl.trouble = "piece"; render(); return; }
     if (g === "tnext") { var nn = glSyl(c).length; if (gl.tsy < nn - 1) { gl.tsy++; gl.trouble = "piece"; } else gl.trouble = "whole"; render(); return; }
     if (g === "twhole") { gl.trouble = "whole"; render(); return; }
@@ -2500,7 +2599,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   function chkCard(h) { return h === sm ? (sm.card || BYID[sm.id]) : (gl ? BYID[gl.id] : null); }
   function chkStart(h, key, again) {
-    if (!S.prefs.check || !SR || (key !== "w" && key !== "word" && key !== "piece") || !chkCard(h)) return;
+    if (!S.prefs.check || !SR || (key !== "w" && key !== "word" && key !== "piece") || !chkCard(h) || (h === sm && sm.card && sm.card.noCheck)) return;
     h.fb = null; h.fbBusy = true; h.fbKey = key;
     var tries = 0, everBegan = false, myTok = fbToken;
     function recording() { return !!(recState.rec && recState.rec.state === "recording"); }
@@ -2567,7 +2666,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   function fbHTML(h, key) {
     if ((key !== "w" && key !== "word" && key !== "piece") || !SR) return "";
-    var c = chkCard(h); if (!c) return "";
+    var c = chkCard(h); if (!c || (h === sm && sm.card && sm.card.noCheck)) return "";
     var on = h === sm ? 'data-m="chkon"' : 'data-act="gl" data-g="chkon"';
     if (!S.prefs.check) return '<div class="row"><button type="button" class="btn sm" ' + on + '>Turn on pronunciation check</button></div><p class="note">Chrome sends your voice to Google’s speech service to do the check.</p>';
     if (h.fbBusy) return '<p class="hint" role="status">Checking…</p>';
@@ -2590,12 +2689,13 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function recRowHTML(key, label) {
     var on = gl.recKey === key, has = gl.recs && gl.recs[key];
     var h = '<div class="audio">' + (on ? '<button type="button" class="btn rec on" data-act="gl" data-g="recstop">Stop recording</button>' : '<button type="button" class="btn rec" data-act="gl" data-g="rec" data-key="' + key + '">\u25cf ' + (label || "Record me") + "</button>") +
-      '<button type="button" class="btn" data-act="gl" data-g="recplay" data-key="' + key + '"' + (has ? "" : " disabled") + ">Play my recording</button></div>";
+      '<button type="button" class="btn" data-act="gl" data-g="recplay" data-key="' + key + '"' + (has ? "" : " disabled") + ">Play my recording</button>" + (has ? '<button type="button" class="btn" data-act="gl" data-g="cmp" data-key="' + key + '">Model, then me</button>' : "") + "</div>";
     if (on) h += '<p class="hint" role="status">Recording. Say it, then tap Stop.</p>';
     if (gl.mic === "denied") h += '<p class="note">The microphone is turned off for this page. Click the lock or microphone icon in the address bar, allow the microphone, then tap Record me again.</p>';
     else if (gl.mic === "blocked") h += '<p class="note">This view does not allow the microphone. This browser does not allow recording, so try Chrome, Edge or Safari. Everything else in the lesson still works.</p>';
     else if (has) h += '<p class="note">' + (S.prefs.check ? 'Your recording stays in this browser tab. The pronunciation check uses Chrome\u2019s speech service (Google).' : 'Your recording stays in this browser tab. It is never uploaded, and it is gone when you close the tab.') + '</p>';
     h += fbHTML(gl, key);
+    h += '<p class="note"><button type="button" class="link" data-act="gl" data-g="saytools">More ways to practice saying this</button></p>';
     return h;
   }
   function glFrame(inner, steps) {
