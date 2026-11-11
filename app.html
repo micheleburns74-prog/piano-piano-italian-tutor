@@ -1353,7 +1353,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     });
   }
   var pzStep = 0, sayView = "";
-  var PZ_STEPS = ["Hear it", "Build it from the end", "Echo", "Record and compare", "Feel the sounds", "How did it go?"];
+  var PZ_STEPS = ["Hear it", "Say the pieces, from the end", "Say the whole word", "Record and compare", "Feel the sounds", "How did it go?"];
   function soundKeys(c) {
     var l = c.it.toLowerCase().replace(/[^a-zà-ÿ]/g, ""), k = [];
     if (/gli/.test(l)) k.push("gli");
@@ -1978,7 +1978,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     else if (m === "rec") recStart("w", sm);
     else if (m === "recstop") recStop();
     else if (m === "recplay") recPlay("w", sm);
-    else if (m === "cmp") { var cc = sm.card || BYID[sm.id]; if (cc) speak(cc.it, 0.6, function () { recPlay("w", sm); }); }
+    else if (m === "cmp") { var cc = sm.card || BYID[sm.id]; if (cc) modelThenMe(cc.it, function () { recPlay("w", sm); }); }
     else if (m === "chkon") { S.prefs.check = true; persist(); renderSay(); }
     else if (m === "hear" && (sm.card || BYID[id])) speak((sm.card || BYID[id]).it, baseRate());
     else if (m === "word") { stopEcho(); speak(t.getAttribute("data-t"), 0.6); }
@@ -2717,7 +2717,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (g === "rec") { recStart(t.getAttribute("data-key")); return; }
     if (g === "recstop") { recStop(); return; }
     if (g === "recplay") { recPlay(t.getAttribute("data-key")); return; }
-    if (g === "cmp") { var ck = t.getAttribute("data-key"), tg = chkTarget(gl, ck === "piece" ? "piece" : "word"); if (tg) speak(tg.text, 0.6, function () { recPlay(ck); }); return; }
+    if (g === "cmp") { var ck = t.getAttribute("data-key"), tg = chkTarget(gl, ck === "piece" ? "piece" : "word"); if (tg) modelThenMe(tg.text, function () { recPlay(ck); }); return; }
     if (g === "saytools") { sayId = gl.id; window.location.hash = "#say"; return; }
     if (g === "tpiece") { glTr("say"); gl.tsy = parseInt(t.getAttribute("data-i"), 10) || 0; gl.trouble = "piece"; render(); return; }
     if (g === "tnext") { var nn = glSyl(c).length; if (gl.tsy < nn - 1) { gl.tsy++; gl.trouble = "piece"; } else gl.trouble = "whole"; render(); return; }
@@ -2774,10 +2774,18 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function recPlay(key, h) {
     h = h || gl;
     var r = h && h.recs && h.recs[key]; if (!r) return;
-    clearEcho(); try { window.speechSynthesis.cancel(); } catch (e) {}
-    try { var a = new Audio(r.url); var pr = a.play(); if (pr && pr.catch) pr.catch(function () { toast("Could not play the recording."); }); } catch (e) { toast("Could not play the recording."); }
+    clearEcho();
+    try { var a = new Audio(r.url); var pr = a.play(); if (pr && pr.catch) pr.catch(function (er) { elog("play failed " + (er && er.name)); toast("Could not play the recording."); }); } catch (e) { elog("play threw"); toast("Could not play the recording."); }
   }
   var fbToken = 0;
+  function modelThenMe(text, playMine) {
+    var done = false, to;
+    function go() { if (done) return; done = true; clearTimeout(to); elog("cmp: playing recording"); setTimeout(playMine, 250); }
+    elog("cmp: speaking model");
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+    speak(text, 0.6, function () { elog("cmp: model ended"); go(); });
+    to = setTimeout(function () { elog("cmp: model timeout"); go(); }, 1500 + text.length * 220);
+  }
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   function nrm(x) { return String(x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim(); }
   function lev(a, b) {
