@@ -1275,7 +1275,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   function echoNote(m) { var el = document.getElementById("echoMsg"); if (el) el.textContent = m; }
   var echoErr = "", echoSR = null, echoLog = [];
-  function echoDiag(m) { echoLog.push(m); if (echoLog.length > 8) echoLog.shift(); var el = document.getElementById("echoDiag"); if (el) el.textContent = "Mic log: " + echoLog.join(", "); }
+  function elog(m) { try { var a = JSON.parse(localStorage.getItem("pp-echolog") || "[]"); a.push(new Date().toISOString().slice(11, 23) + " " + m); localStorage.setItem("pp-echolog", JSON.stringify(a.slice(-120))); } catch (e) {} }
+  function echoDiag(m) { elog(m); echoLog.push(m); if (echoLog.length > 8) echoLog.shift(); var el = document.getElementById("echoDiag"); if (el) el.textContent = "Mic log: " + echoLog.join(", "); }
   function echoStopSR(after) {
     var r = echoSR; echoSR = null;
     if (!r) { if (after) after(); return; }
@@ -1287,7 +1288,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function echoListen(text, tok, done) {
     var win = Math.max(6000, text.length * 700), fin = false, tm, t0 = Date.now(), n = 0;
     if (!SR || location.protocol === "file:" || !S.prefs.check) { setTimeout(function () { done(undefined); }, win); return; }
-    echoErr = "";
+    echoErr = ""; elog("ROUND listen window " + win + "ms");
     function end(v) { if (fin) return; fin = true; clearTimeout(tm); echoStopSR(function () { if (tok === echoTok) done(v); }); }
     tm = setTimeout(function () { end(null); }, win);
     (function one() {
@@ -1295,14 +1296,19 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       var r; try { r = new SR(); } catch (e) { echoDiag("no recognizer"); return; }
       echoSR = r; r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = true;
       r.onstart = function () { echoDiag("listening"); };
+      r.onaudiostart = function () { elog("audiostart"); };
+      r.onsoundstart = function () { elog("soundstart"); };
+      r.onspeechstart = function () { elog("speechstart"); };
+      r.onspeechend = function () { elog("speechend"); };
       r.onresult = function (e) {
+        elog("result " + (e.results.length) + (echoSR !== r ? " STALE" : ""));
         if (echoSR !== r) return;
         var res = e.results[e.results.length - 1], a = [];
         for (var j = 0; j < res.length; j++) a.push(res[j].transcript);
         echoDiag("heard"); if (a.length && a[0]) end(a);
       };
       r.onerror = function (e) { var er = (e && e.error) || "error"; echoDiag(er); if (er !== "no-speech" && er !== "aborted") echoErr = er; };
-      r.onend = function () { if (echoSR === r && !fin && Date.now() - t0 < win - 800) { n++; echoSR = null; setTimeout(one, echoErr ? 600 : 200); } };
+      r.onend = function () { elog("end" + (echoSR === r ? "" : " (old)") + (fin ? " fin" : "")); if (echoSR === r && !fin && Date.now() - t0 < win - 800) { n++; echoSR = null; setTimeout(one, echoErr ? 600 : 200); } };
       try { r.start(); } catch (e) { echoDiag("start failed"); echoErr = "start"; echoSR = null; setTimeout(one, 600); }
     })();
   }
