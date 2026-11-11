@@ -2500,8 +2500,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   function chkCard(h) { return h === sm ? (sm.card || BYID[sm.id]) : (gl ? BYID[gl.id] : null); }
   function chkStart(h, key, again) {
-    if (!S.prefs.check || !SR || (key !== "w" && key !== "word") || !chkCard(h)) return;
-    h.fb = null; h.fbBusy = true;
+    if (!S.prefs.check || !SR || (key !== "w" && key !== "word" && key !== "piece") || !chkCard(h)) return;
+    h.fb = null; h.fbBusy = true; h.fbKey = key;
     var tries = 0, everBegan = false, myTok = fbToken;
     function recording() { return !!(recState.rec && recState.rec.state === "recording"); }
     function finish(r) {
@@ -2530,37 +2530,62 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     }
     one();
   }
+  function chkTarget(h, key) {
+    var c = chkCard(h); if (!c) return null;
+    if (key === "piece") { var sy = glSyl(c)[gl ? gl.tsy : 0]; return sy ? { text: sy.t, piece: true, c: c } : null; }
+    return { text: c.it, piece: false, c: c };
+  }
+  function pieceOK(alts, piece) {
+    var p = nrm(piece).replace(/ /g, ""), best = null, ok = false;
+    alts.forEach(function (a) {
+      var n = nrm(a).replace(/ /g, ""); if (!n) return;
+      var d = lev(n, p), hit = n === p || n.indexOf(p) >= 0 || (p.indexOf(n) === 0 && n.length >= Math.max(1, p.length - 1)) || d <= (p.length <= 3 ? 1 : 2);
+      if (hit) ok = true; if (best === null || d < best.d) best = { d: d, raw: a };
+    });
+    return { ok: ok, raw: best ? best.raw : "" };
+  }
+  function fbVerdict(h, key) {
+    var f = h.fb, tg = chkTarget(h, key); if (!f || !tg) return null;
+    if (f.err) return { kind: "err", err: f.err };
+    if (!f.alts || !f.alts.length || !f.alts[0]) return { kind: h.peak >= 12 ? "heard" : "silent", tg: tg };
+    if (tg.piece) { var pr = pieceOK(f.alts, tg.text); return { kind: pr.ok ? "right" : "close", raw: pr.raw, tg: tg }; }
+    var t = nrm(tg.text).replace(/ /g, ""), best = "", raw = "", bd = 1e9;
+    f.alts.forEach(function (a) { var n = nrm(a).replace(/ /g, ""), d = lev(n, t); if (d < bd) { bd = d; best = n; raw = a; } });
+    if (bd === 0) return { kind: "right", raw: raw, tg: tg };
+    var syls = glSyl(tg.c), miss = syls.filter(function (x) { var n = nrm(x.t); return n && best.indexOf(n) < 0; });
+    return { kind: "close", raw: raw, tg: tg, miss: (miss.length && syls.length > 1) ? miss : [] };
+  }
   function fbSay(h) {
-    var f = h.fb, c = chkCard(h); if (!f || f.err || !c) return;
-    var tok = fbToken;
-    if (!f.alts || !f.alts[0]) { speakEn(h.peak >= 12 ? "I heard you, but I could not make out the word. Say the whole word together, not in pieces." : "I could not hear you. Try again.", null, true); return; }
-    var t = nrm(c.it).replace(/ /g, ""), best = "", bd = 1e9;
-    f.alts.forEach(function (a) { var n = nrm(a).replace(/ /g, ""), d = lev(n, t); if (d < bd) { bd = d; best = n; } });
-    if (bd === 0) { speakEn("That sounded right.", null, true); return; }
-    var syls = glSyl(c), miss = syls.filter(function (x) { var n = nrm(x.t); return n && best.indexOf(n) < 0; });
+    var key = h.fbKey || "word", v = fbVerdict(h, key), tok = fbToken; if (!v || v.kind === "err") return;
+    if (v.kind === "silent") { speakEn("I could not hear you. Try again.", null, true); return; }
+    if (v.kind === "heard") { speakEn(v.tg.piece ? "I heard you, but this short sound is hard for the computer to check. Listen again and try once more." : "I heard you, but I could not make out the word. Say the whole word together, not in pieces.", null, true); return; }
+    if (v.kind === "right") { speakEn("That sounded right.", null, true); return; }
     speakEn("Not quite. Listen.", function () {
       if (tok !== fbToken) return;
-      speak(c.it, 0.6, function () { if (tok === fbToken && miss.length && syls.length > 1) speakEn("Try this part.", function () { if (tok === fbToken) speak(miss[0].t, 0.5); }, true); });
+      speak(v.tg.text, v.tg.piece ? 0.5 : 0.6, function () { if (tok === fbToken && v.miss && v.miss.length) speakEn("Try this part.", function () { if (tok === fbToken) speak(v.miss[0].t, 0.5); }, true); });
     }, true);
   }
   function fbHTML(h, key) {
-    if ((key !== "w" && key !== "word") || !SR) return "";
+    if ((key !== "w" && key !== "word" && key !== "piece") || !SR) return "";
     var c = chkCard(h); if (!c) return "";
     var on = h === sm ? 'data-m="chkon"' : 'data-act="gl" data-g="chkon"';
     if (!S.prefs.check) return '<div class="row"><button type="button" class="btn sm" ' + on + '>Turn on pronunciation check</button></div><p class="note">Chrome sends your voice to Google’s speech service to do the check.</p>';
     if (h.fbBusy) return '<p class="hint" role="status">Checking…</p>';
-    var f = h.fb; if (!f) return "";
-    if (f.err === "not-allowed") return '<p class="note">The pronunciation check could not use the microphone. Allow it in the address bar and try again.</p>';
-    if (f.err === "unavailable" || f.err === "service-not-allowed") return '<p class="note">' + (location.protocol === "file:" ? 'Chrome does not run the pronunciation check on a file opened from your computer. Open Piano Piano from its web link instead.' : 'The pronunciation check could not start. Check that the microphone is allowed for this page, then try again.') + '</p>';
-    if (f.err === "network") return '<p class="note">The pronunciation check needs an internet connection. Your recording still works.</p>';
-    if (f.err && f.err !== "no-speech" && f.err !== "aborted") return '<p class="note">The pronunciation check is not working right now. Your recording still works.</p>';
-    if (!f.alts || !f.alts.length || !f.alts[0]) return (h.peak >= 12 ? '<p class="tip"><strong>I heard you, but could not make out the word.</strong> Say the whole word smoothly, all together, not in pieces.</p>' : '<p class="tip"><strong>I could not hear a word.</strong> Move a little closer and say it again.</p>');
-    var t = nrm(c.it).replace(/ /g, ""), best = "", raw = "", bd = 1e9;
-    f.alts.forEach(function (a) { var n = nrm(a).replace(/ /g, ""), d = lev(n, t); if (d < bd) { bd = d; best = n; raw = a; } });
-    if (bd === 0) return '<p class="tip"><strong>That sounded right.</strong> I heard <span lang="it">' + esc(raw) + "</span>.</p>";
-    var miss = glSyl(c).map(function (x) { return nrm(x.t); }).filter(function (x) { return x && best.indexOf(x) < 0; });
-    return '<p class="tip"><strong>Close, not quite yet.</strong> I heard <span lang="it">' + esc(raw) + '</span>. Aim for <span lang="it">' + esc(c.it) + "</span>." +
-      (miss.length && glSyl(c).length > 1 ? " Work on: <strong lang=\"it\">" + esc(miss.join(", ")) + "</strong>." : " Hear it again, then say it a little slower.") + "</p>";
+    var k = key === "w" ? "word" : key, hk = h.fbKey === "w" ? "word" : h.fbKey;
+    if (!h.fb || hk !== k) return "";
+    var v = fbVerdict(h, k); if (!v) return "";
+    if (v.kind === "err") {
+      var er = v.err;
+      if (er === "not-allowed") return '<p class="note">The pronunciation check could not use the microphone. Allow it in the address bar and try again.</p>';
+      if (er === "unavailable" || er === "service-not-allowed") return '<p class="note">' + (location.protocol === "file:" ? 'Chrome does not run the pronunciation check on a file opened from your computer. Open Piano Piano from its web link instead.' : 'The pronunciation check could not start. Check that the microphone is allowed for this page, then try again.') + '</p>';
+      if (er === "network") return '<p class="note">The pronunciation check needs an internet connection. Your recording still works.</p>';
+      return '<p class="note">The pronunciation check is not working right now. Your recording still works.</p>';
+    }
+    if (v.kind === "silent") return '<p class="tip"><strong>I could not hear a word.</strong> Move a little closer and say it again.</p>';
+    if (v.kind === "heard") return v.tg.piece ? '<p class="tip"><strong>I heard you,</strong> but this short sound is hard for the computer to check. Hear the piece again and try once more.</p>' : '<p class="tip"><strong>I heard you, but could not make out the word.</strong> Say the whole word smoothly, all together, not in pieces.</p>';
+    if (v.kind === "right") return '<p class="tip"><strong>That sounded right.</strong> I heard <span lang="it">' + esc(v.raw) + "</span>.</p>";
+    return '<p class="tip"><strong>Close, not quite yet.</strong> I heard <span lang="it">' + esc(v.raw) + '</span>. Aim for <span lang="it">' + esc(v.tg.text) + "</span>." +
+      (v.miss && v.miss.length ? " Work on: <strong lang=\"it\">" + esc(v.miss.map(function (x) { return x.t; }).join(", ")) + "</strong>." : " Hear it again, then say it a little slower.") + "</p>";
   }
   function recRowHTML(key, label) {
     var on = gl.recKey === key, has = gl.recs && gl.recs[key];
@@ -2570,7 +2595,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (gl.mic === "denied") h += '<p class="note">The microphone is turned off for this page. Click the lock or microphone icon in the address bar, allow the microphone, then tap Record me again.</p>';
     else if (gl.mic === "blocked") h += '<p class="note">This view does not allow the microphone. This browser does not allow recording, so try Chrome, Edge or Safari. Everything else in the lesson still works.</p>';
     else if (has) h += '<p class="note">' + (S.prefs.check ? 'Your recording stays in this browser tab. The pronunciation check uses Chrome\u2019s speech service (Google).' : 'Your recording stays in this browser tab. It is never uploaded, and it is gone when you close the tab.') + '</p>';
-    if (has || gl.fbBusy) h += fbHTML(gl, key); else if (key === "word") h += fbHTML(gl, key);
+    h += fbHTML(gl, key);
     return h;
   }
   function glFrame(inner, steps) {
