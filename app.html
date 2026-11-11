@@ -1354,7 +1354,9 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var sy = glSyl(c), n = sy.length, st = stressIdx(c), steps = [];
     for (var k = n - 1; k >= 0; k--) steps.push(joinSyl(sy.slice(k)));
     var btn = function (label, act, data, cls) { return '<button type="button" class="btn sm ' + (cls || "") + '" data-act="' + act + '"' + data + ">" + label + "</button>"; };
-    var h2 = '<section class="pagehead"><h1 lang="it">' + esc(c.it) + '</h1><p class="ph">' + phHTML(c.ph) + '</p><p class="lede">' + esc(c.en) + '</p></section>' +
+    var ci = CARDS.indexOf(c), pv = CARDS[ci - 1], nx = CARDS[ci + 1];
+    var navH = '<div class="audio">' + (pv ? '<button type="button" class="btn sm" data-act="sayword" data-id="' + pv.id + '">&larr; ' + esc(pv.it) + '</button>' : '') + '<button type="button" class="btn sm" data-act="saylist">All words</button>' + (nx ? '<button type="button" class="btn sm primary" data-act="sayword" data-id="' + nx.id + '">Next: ' + esc(nx.it) + ' &rarr;</button>' : '') + '</div>';
+    var h2 = '<section class="panel">' + navH + '</section><section class="pagehead"><h1 lang="it">' + esc(c.it) + '</h1><p class="ph">' + phHTML(c.ph) + '</p><p class="lede">' + esc(c.en) + '</p></section>' +
       '<section class="panel"><div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"') + btn("Slow", "slow", ' data-id="' + c.id + '"') + btn("Record me", "sayopen", ' data-id="' + c.id + '"') + "</div></section>";
     if (n > 1) {
       h2 += '<section class="panel"><h2>Build it from the end</h2><ul class="rows">' + steps.map(function (tx) {
@@ -1366,6 +1368,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       return '<button type="button" class="btn beat' + (i === st ? " st" : "") + '" data-act="beat" data-st="' + (i === st ? 1 : 0) + '" lang="it">' + esc(x.t) + "</button>";
     }).join("") + '</div><div class="audio">' + btn("Hear the rhythm", "rhythm", ' data-id="' + c.id + '"') + "</div></section>";
     h2 += '<section class="panel"><h2>Body cues</h2><ul class="cues">' + cuesFor(c).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></section>";
+    h2 += '<section class="panel">' + navH + '</section>';
     h2 += '<p><button type="button" class="link" data-act="saylist">All words</button>' + (gl && gl.id === c.id ? ' &middot; <a class="link" href="#lesson">Back to the lesson</a>' : "") + ' &middot; <a class="link" href="#today">Back to Today</a></p>';
     return h2;
   }
@@ -1946,7 +1949,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       case "glword": if (BYID[id]) glStart(id); break;
       case "sayme": openSay("snd:" + t.getAttribute("data-t"), { it: t.getAttribute("data-t"), ph: t.getAttribute("data-p") || "", en: t.getAttribute("data-e") || "" }); break;
       case "resumesess": showHome = false; render(); break;
-      case "sayword": sayId = t.getAttribute("data-id"); if (view === "say") render(); else window.location.hash = "#say"; break;
+      case "sayword": echoTok++; sayId = t.getAttribute("data-id"); if (view === "say") { render(); window.scrollTo(0, 0); } else window.location.hash = "#say"; break;
       case "saylist": sayId = ""; echoTok++; render(); break;
       case "speakslow": speak(t.getAttribute("data-t"), 0.55); break;
       case "echo": if (t.getAttribute("data-t")) echoDrill(t.getAttribute("data-t"), Number(t.getAttribute("data-n")) || 2); else if (BYID[id]) runEcho(id); break;
