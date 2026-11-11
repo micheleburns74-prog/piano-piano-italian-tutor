@@ -1481,8 +1481,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (s === 0) {
       h2 += '<div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"', "primary") + btn("Slow", "slow", ' data-id="' + c.id + '"') + '</div><p><a class="link" href="https://translate.google.com/?sl=it&tl=en&op=translate&text=' + encodeURIComponent(c.it) + '" target="_blank" rel="noopener">Hear it on Google Translate (no sign-up)</a>' + (c.it.indexOf(" ") < 0 ? ' &middot; <a class="link" href="https://en.wiktionary.org/wiki/' + encodeURIComponent(c.it.toLowerCase()) + '#Italian" target="_blank" rel="noopener">Real voice, if there is one</a>' : "") + '</p>';
     } else if (s === 1) {
-      if (n > 1) h2 += '<ul class="rows">' + steps.map(function (tx) {
-        return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Echo", "echo", ' data-t="' + esc(tx) + '" data-n="2"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
+      if (n > 1) h2 += '<p class="tip" id="echoMsg" role="status" aria-live="polite">Press Echo on a piece. I say it, listen, and keep score.</p><p class="hint" id="echoDiag"></p><div class="audio">' + btn("Stop", "echostop", "") + '</div><ul class="rows">' + steps.map(function (tx) {
+        return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Echo", "echo", ' data-t="' + esc(tx) + '" data-n="3"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
       }).join("") + "</ul>";
       else h2 += '<p class="lede">This word is short. Go to the next step.</p>';
     } else if (s === 2) {
