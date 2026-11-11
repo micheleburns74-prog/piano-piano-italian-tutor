@@ -1229,6 +1229,15 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       '<div><button type="button" class="btn primary big" data-act="setup">Begin</button></div>' +
       '<p class="note">Everything stays on this device. No account. Your recordings are never uploaded, unless you turn on the pronunciation check, which uses Chrome\u2019s speech service. You can change all of this in Settings.</p></section>';
   }
+  function allHTML() {
+    var h = '<section class="pagehead"><h1>All lessons</h1></section>';
+    SETS.forEach(function (st, si) {
+      h += '<section class="panel"><h2>Set ' + (si + 1) + ": " + esc(st.title) + '</h2><ul class="rows">' + CARDS.filter(function (c) { return c.set === si; }).map(function (c) {
+        return '<li><span class="rit" lang="it">' + esc(c.it) + '</span><span class="ren">' + esc(c.en) + '</span><span class="pact"><button type="button" class="btn sm" data-act="listen" data-id="' + c.id + '">' + SPK_SM + ' Listen</button><button type="button" class="btn sm" data-act="sayopen" data-id="' + c.id + '">Record me</button><button type="button" class="btn sm primary" data-act="glword" data-id="' + c.id + '">Lesson</button></span></li>';
+      }).join("") + "</ul></section>";
+    });
+    return h + '<p><a class="link" href="#today">Back to Today</a></p>';
+  }
   function todayHTML() {
     if (!S.prefs.setup) return welcomeHTML();
     if (doneEntry) return doneHTML();
@@ -1277,7 +1286,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var nextGoal = stageOpen("read") ? '<p class="keep"><strong>Next goal.</strong> Reading practice is open. Try it in the <a class="link" href="#plan">Lesson plan</a> when you like.</p>' : '<p class="keep"><strong>Next goal.</strong> ' + (kn0 ? "Know " + pl(10 - kn0, "more phrase") + " to open Read it." : "Know 10 phrases to open Read it.") + " You know " + kn0 + " now.</p>";
     var howTo = "";
     var gr = greeting();
-    var hero = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>" + (S.sessions.length ? "Today" : "Welcome to Piano Piano") + "</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button></div><p class="hint">Next up: ' + (rec === "mix" ? "Build on it" : "New words") + ". Just tap this and follow along.</p>" + nextGoal + howTo + quickLink + whereWasI() + weekDotsHTML() + reviewOnly + "</section>";
+    var hero = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>" + (S.sessions.length ? "Today" : "Welcome to Piano Piano") + "</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button></div><div class="row"><a class="btn" href="#all">All lessons, from the beginning</a></div><p class="hint">Next up: ' + (rec === "mix" ? "Build on it" : "New words") + ". Just tap this and follow along.</p>" + nextGoal + howTo + quickLink + whereWasI() + weekDotsHTML() + reviewOnly + "</section>";
     if (S.prefs.focus) {
       return hero + '<p class="note"><button type="button" class="link" data-act="unfocus">Show everything again</button></p>';
     }
@@ -1604,7 +1613,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     stopEcho();
     var hd = app.querySelector("details.help");
     if (hd) helpOpen = hd.open;
-    var body = view === "phrases" ? phrasesHTML() : view === "progress" ? progressHTML() : view === "tutor" ? tutorHTML() : view === "listening" ? listeningHTML() : view === "plan" ? planHTML() : view === "lesson" ? lessonHTML() : view === "sounds" ? soundsHTML() : view === "lists" ? listsHTML() : view === "pairs" ? pairsHTML() : view === "more" ? moreHTML() : view === "sessions" ? sessionsHTML() : view === "settings" ? settingsHTML() : todayHTML();
+    var body = view === "phrases" ? phrasesHTML() : view === "progress" ? progressHTML() : view === "tutor" ? tutorHTML() : view === "listening" ? listeningHTML() : view === "plan" ? planHTML() : view === "lesson" ? lessonHTML() : view === "sounds" ? soundsHTML() : view === "all" ? allHTML() : view === "lists" ? listsHTML() : view === "pairs" ? pairsHTML() : view === "more" ? moreHTML() : view === "sessions" ? sessionsHTML() : view === "settings" ? settingsHTML() : todayHTML();
     if (view === "listening" && !(dict && !dict.done)) body = subNav(PRACTICE_NAV) + body;
     else if (view === "phrases" || view === "sounds" || view === "lists" || view === "pairs") body = subNav(PRACTICE_NAV) + body;
     else if (view === "progress" || view === "sessions") body = subNav([["progress", "This week"], ["sessions", "Finished sessions"]]) + body;
@@ -1621,7 +1630,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   function route() {
     var h = (window.location.hash || "").replace("#", "");
-    var okv = { lesson: 1, plan: 1, pairs: 1, lists: 1, phrases: 1, tutor: 1, progress: 1, listening: 1, sounds: 1, sessions: 1, settings: 1, more: 1 };
+    var okv = { all: 1, lesson: 1, plan: 1, pairs: 1, lists: 1, phrases: 1, tutor: 1, progress: 1, listening: 1, sounds: 1, sessions: 1, settings: 1, more: 1 };
     view = okv[h] ? h : "today";
     if (view !== "listening" && plState.on) plStop(true);
     if (view === "listening" && dict && dict.done) dict = null;
