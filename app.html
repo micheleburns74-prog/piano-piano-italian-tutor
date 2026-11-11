@@ -1167,6 +1167,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       '<label for="formSel">Phrases like "I am American"</label><select id="formSel">' + opt("f", "Feminine forms (americana)", S.prefs.form) + opt("m", "Masculine forms (americano)", S.prefs.form) + "</select></section>" +
       '<h2 class="grp">Sound</h2><section class="panel hbody"><h2>Voice</h2><p class="note">The page reads Italian aloud using a voice that is built into your phone or computer.</p>' + voiceBlock +
       '<label class="check"><input type="checkbox" id="autoSel"' + (S.auto ? " checked" : "") + "> Play each phrase automatically</label>" +
+      '<label class="check"><input type="checkbox" id="chkSel"' + (S.prefs.check ? " checked" : "") + (SR ? "" : " disabled") + "> Check my pronunciation when I record (Chrome sends your voice to Google\u2019s speech service)</label>" +
       '<label class="check"><input type="checkbox" id="coachSel"' + (S.prefs.coach === false ? "" : " checked") + "> Spoken coaching lines in English</label>" +
       '<p class="note">Short spoken lines like "Almost. Listen to this word." Turn this off to hear only the Italian.</p>' +
       '<p class="note">When this is on, a phrase is read aloud as soon as it appears. Turn it off if you would rather tap Listen yourself.</p>' +
@@ -1178,7 +1179,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       '<p class="note">Your progress is stored in this browser. A backup file keeps it safe if Chrome is ever cleared. It stays on your computer.</p>' +
       '<div class="row"><button type="button" class="btn" data-act="backupsave">Save backup file</button><label class="btn" for="restoreFile">Restore from a backup file</label><input type="file" id="restoreFile" accept=".json,application/json" class="sr"></div></section>' +
       '<h2 class="grp">This browser</h2><section class="panel"><h2>What works here</h2><ul class="tips">' + browserCheckHTML() + "</ul></section>" +
-      '<h2 class="grp">About</h2><section class="panel"><h2>About Piano Piano</h2><p class="about">Version ' + VERSION + '.</p><p class="about"><strong>Privacy.</strong> Your progress is saved in this browser. Your recordings stay in this browser tab and are never uploaded. There is no account and no tracking.</p></section>';
+      '<h2 class="grp">About</h2><section class="panel"><h2>About Piano Piano</h2><p class="about">Version ' + VERSION + '.</p><p class="about"><strong>Privacy.</strong> Your progress is saved in this browser. Your recordings stay in this browser tab and are never uploaded. The one exception is the optional pronunciation check, which uses Chrome\u2019s speech service (Google) while it listens. There is no account and no tracking.</p></section>';
   }
 
   function previewRows(list) {
@@ -1226,7 +1227,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       '<label for="wForm">Phrases like "I am American"</label><select id="wForm"><option value="f">Feminine forms (americana)</option><option value="m">Masculine forms (americano)</option></select>' +
       '<label for="wPer">New phrases per session</label><select id="wPer"><option value="3">3 (recommended)</option><option value="5">5</option></select>' +
       '<div><button type="button" class="btn primary big" data-act="setup">Begin</button></div>' +
-      '<p class="note">Everything stays on this device. No account, and your recordings are never uploaded. You can change all of this in Settings.</p></section>';
+      '<p class="note">Everything stays on this device. No account. Your recordings are never uploaded, unless you turn on the pronunciation check, which uses Chrome\u2019s speech service. You can change all of this in Settings.</p></section>';
   }
   function todayHTML() {
     if (!S.prefs.setup) return welcomeHTML();
@@ -1666,7 +1667,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       (on ? '<button type="button" class="btn rec on" data-m="recstop">Stop recording</button>' : '<button type="button" class="btn rec" data-m="rec">\u25cf Record me</button>') +
       '<button type="button" class="btn" data-m="recplay"' + (has ? "" : " disabled") + ">Play my recording</button></div>" +
       (on ? '<p class="hint" role="status">Recording. Say it, then tap Stop.</p>' : "") +
-      (sm.mic === "denied" ? '<p class="note">The microphone is turned off for this page. Click the lock icon in the address bar, allow the microphone, then tap Record me again.</p>' : sm.mic === "blocked" ? '<p class="note">This view does not allow the microphone. Open Piano Piano in Chrome, Edge or Safari on a computer or phone.</p>' : has ? '<p class="note">Your recording stays in this tab and is never uploaded.</p>' : "") +
+      (sm.mic === "denied" ? '<p class="note">The microphone is turned off for this page. Click the lock icon in the address bar, allow the microphone, then tap Record me again.</p>' : sm.mic === "blocked" ? '<p class="note">This view does not allow the microphone. Open Piano Piano in Chrome, Edge or Safari on a computer or phone.</p>' : has ? '<p class="note">' + (S.prefs.check ? 'Your recording stays in this tab. The pronunciation check uses Chrome\u2019s speech service (Google).' : 'Your recording stays in this tab and is never uploaded.') + '</p>' : "") + fbHTML(sm, "w") +
       '<div class="row"><button type="button" class="btn ghost" data-m="close">Close</button></div>';
   }
   function openSay(id) {
@@ -1683,6 +1684,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     else if (m === "rec") recStart("w", sm);
     else if (m === "recstop") recStop();
     else if (m === "recplay") recPlay("w", sm);
+    else if (m === "chkon") { S.prefs.check = true; persist(); renderSay(); }
     else if (m === "hear" && BYID[id]) speak(BYID[id].it, baseRate());
     else if (m === "word") { stopEcho(); speak(t.getAttribute("data-t"), 0.6); }
     else if (m === "whole" && BYID[id]) { stopEcho(); speak(BYID[id].it, 0.65); }
@@ -1998,6 +2000,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     else if (id === "simpleSel") pr.simple = !!t.checked;
     else if (id === "rateSel") pr.rate = Number(v) || 0.85;
     else if (id === "coachSel") pr.coach = !!t.checked;
+    else if (id === "chkSel") pr.check = !!t.checked;
     else if (id === "perSel") pr.per = Number(v) === 5 ? 5 : 3;
     else if (id === "nameInp") { pr.name = String(v || "").trim().slice(0, 24); applyPersonal(); }
     else if (id === "namePhInp") { pr.namePh = String(v || "").trim().slice(0, 40); applyPersonal(); }
@@ -2398,6 +2401,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (g === "next") { recStop(); if (gl.step === 1) gl.log.heard = Math.max(gl.log.heard, 1); if (gl.step === 2) gl.log.read++; gl.step++; gl.trouble = null; gl.paused = false; render(); if (gl.step === 1) speak(c.it, 0.5); return; }
     if (g === "said") { gl.log.said++; var sc = S.cards[gl.id] || (S.cards[gl.id] = { box: 0, due: "", seen: 0 }); sc.said = (sc.said || 0) + 1; dayRec().said++; persist(); toast("Good. Counted."); return; }
     if (g === "check") { openSay(gl.id); return; }
+    if (g === "chkon") { S.prefs.check = true; persist(); render(); return; }
     if (g === "rec") { recStart(t.getAttribute("data-key")); return; }
     if (g === "recstop") { recStop(); return; }
     if (g === "recplay") { recPlay(t.getAttribute("data-key")); return; }
@@ -2417,7 +2421,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   var recState = { rec: null, timer: null };
   function micOK() { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder); }
-  function recStop() { try { if (recState.rec && recState.rec.state !== "inactive") recState.rec.stop(); } catch (e) {} clearTimeout(recState.timer); }
+  function recStop() { try { if (recState.rec && recState.rec.state !== "inactive") recState.rec.stop(); } catch (e) {} try { if (recState.sr) recState.sr.stop(); } catch (e) {} clearTimeout(recState.timer); }
   function recStart(key, h) {
     h = h || gl; if (!h) return;
     var again = function () { if (h.re) h.re(); else render(); };
@@ -2432,7 +2436,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         if (h.recs[key] && h.recs[key].url) { try { URL.revokeObjectURL(h.recs[key].url); } catch (e) {} }
         h.recs[key] = { url: URL.createObjectURL(blob) }; h.recKey = ""; h.mic = "ok"; again();
       };
-      recState.rec = mr; h.recKey = key; h.mic = "ok"; mr.start(); again();
+      recState.rec = mr; h.recKey = key; h.mic = "ok"; mr.start(); chkStart(h, key, again); again();
       recState.timer = setTimeout(recStop, 8000);
     }).catch(function (err) { h.mic = (err && err.name === "NotAllowedError") ? "denied" : "blocked"; h.recKey = ""; again(); });
   }
@@ -2442,6 +2446,43 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     clearEcho(); try { window.speechSynthesis.cancel(); } catch (e) {}
     try { var a = new Audio(r.url); var pr = a.play(); if (pr && pr.catch) pr.catch(function () { toast("Could not play the recording."); }); } catch (e) { toast("Could not play the recording."); }
   }
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  function nrm(x) { return String(x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim(); }
+  function lev(a, b) {
+    var p = [], i, j; for (j = 0; j <= b.length; j++) p[j] = j;
+    for (i = 1; i <= a.length; i++) { var prev = p[0]; p[0] = i; for (j = 1; j <= b.length; j++) { var tmp = p[j]; p[j] = Math.min(p[j] + 1, p[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = tmp; } }
+    return p[b.length];
+  }
+  function chkCard(h) { return h === sm ? BYID[sm.id] : (gl ? BYID[gl.id] : null); }
+  function chkStart(h, key, again) {
+    if (!S.prefs.check || !SR || (key !== "w" && key !== "word") || !chkCard(h)) return;
+    h.fb = null; h.fbBusy = true;
+    try {
+      var r = new SR(); r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = false;
+      r.onresult = function (e) { var alts = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript); h.fb = { alts: alts }; };
+      r.onerror = function (e) { h.fb = { err: (e && e.error) || "error" }; };
+      r.onend = function () { h.fbBusy = false; if (!h.fb) h.fb = { alts: [] }; recState.sr = null; again(); };
+      recState.sr = r; r.start();
+    } catch (e) { h.fbBusy = false; }
+  }
+  function fbHTML(h, key) {
+    if ((key !== "w" && key !== "word") || !SR) return "";
+    var c = chkCard(h); if (!c) return "";
+    var on = h === sm ? 'data-m="chkon"' : 'data-act="gl" data-g="chkon"';
+    if (!S.prefs.check) return '<div class="row"><button type="button" class="btn sm" ' + on + '>Turn on pronunciation check</button></div><p class="note">Chrome sends your voice to Google’s speech service to do the check.</p>';
+    if (h.fbBusy) return '<p class="hint" role="status">Checking…</p>';
+    var f = h.fb; if (!f) return "";
+    if (f.err === "not-allowed" || f.err === "service-not-allowed") return '<p class="note">The pronunciation check could not use the microphone. Allow it in the address bar and try again.</p>';
+    if (f.err === "network") return '<p class="note">The pronunciation check needs an internet connection. Your recording still works.</p>';
+    if (f.err && f.err !== "no-speech" && f.err !== "aborted") return '<p class="note">The pronunciation check is not working right now. Your recording still works.</p>';
+    if (!f.alts || !f.alts.length || !f.alts[0]) return '<p class="tip"><strong>I could not hear a word.</strong> Move a little closer and say it again.</p>';
+    var t = nrm(c.it).replace(/ /g, ""), best = "", raw = "", bd = 1e9;
+    f.alts.forEach(function (a) { var n = nrm(a).replace(/ /g, ""), d = lev(n, t); if (d < bd) { bd = d; best = n; raw = a; } });
+    if (bd === 0) return '<p class="tip"><strong>That sounded right.</strong> I heard <span lang="it">' + esc(raw) + "</span>.</p>";
+    var miss = glSyl(c).map(function (x) { return nrm(x.t); }).filter(function (x) { return x && best.indexOf(x) < 0; });
+    return '<p class="tip"><strong>Close, not quite yet.</strong> I heard <span lang="it">' + esc(raw) + '</span>. Aim for <span lang="it">' + esc(c.it) + "</span>." +
+      (miss.length && glSyl(c).length > 1 ? " Work on: <strong lang=\"it\">" + esc(miss.join(", ")) + "</strong>." : " Hear it again, then say it a little slower.") + "</p>";
+  }
   function recRowHTML(key, label) {
     var on = gl.recKey === key, has = gl.recs && gl.recs[key];
     var h = '<div class="audio">' + (on ? '<button type="button" class="btn rec on" data-act="gl" data-g="recstop">Stop recording</button>' : '<button type="button" class="btn rec" data-act="gl" data-g="rec" data-key="' + key + '">\u25cf ' + (label || "Record me") + "</button>") +
@@ -2449,7 +2490,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (on) h += '<p class="hint" role="status">Recording. Say it, then tap Stop.</p>';
     if (gl.mic === "denied") h += '<p class="note">The microphone is turned off for this page. Click the lock or microphone icon in the address bar, allow the microphone, then tap Record me again.</p>';
     else if (gl.mic === "blocked") h += '<p class="note">This view does not allow the microphone. This browser does not allow recording, so try Chrome, Edge or Safari. Everything else in the lesson still works.</p>';
-    else if (has) h += '<p class="note">Your recording stays in this browser tab. It is never uploaded, and it is gone when you close the tab.</p>';
+    else if (has) h += '<p class="note">' + (S.prefs.check ? 'Your recording stays in this browser tab. The pronunciation check uses Chrome\u2019s speech service (Google).' : 'Your recording stays in this browser tab. It is never uploaded, and it is gone when you close the tab.') + '</p>';
+    if (has || gl.fbBusy) h += fbHTML(gl, key); else if (key === "word") h += fbHTML(gl, key);
     return h;
   }
   function glFrame(inner, steps) {
