@@ -1270,16 +1270,47 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return out.slice(0, 5);
   }
   function echoNote(m) { var el = document.getElementById("echoMsg"); if (el) el.textContent = m; }
+  function echoListen(text, tok, done) {
+    var win = Math.max(4500, text.length * 600), t0 = Date.now(), got = null, cur = null, fin = false;
+    function end() { if (fin) return; fin = true; try { cur && cur.abort(); } catch (e) {} done(got); }
+    if (!SR || location.protocol === "file:" || !S.prefs.check) { setTimeout(function () { fin = true; done(undefined); }, win); return; }
+    setTimeout(end, win);
+    (function one() {
+      if (fin || tok !== echoTok) return;
+      var r; try { r = new SR(); } catch (e) { return; }
+      cur = r; r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = false;
+      r.onresult = function (e) {
+        var a = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) a.push(e.results[i][j].transcript);
+        if (a.length && a[0]) { got = a; end(); }
+      };
+      r.onend = function () { if (!fin && !got && Date.now() - t0 < win - 600) setTimeout(one, 80); };
+      r.onerror = function () {};
+      try { r.start(); } catch (e) {}
+    })();
+  }
   function echoDrill(text, cnt) {
     var tok = ++echoTok, n = 0;
     (function round() {
       if (tok !== echoTok) return;
-      if (n >= cnt) { echoNote("Done. Now say it once more on your own."); return; }
+      if (n >= cnt) { echoNote("Done. Well done."); return; }
       n++; echoNote("Listen (" + n + " of " + cnt + ")");
       speak(text, 0.55, function () {
         if (tok !== echoTok) return;
-        echoNote("Your turn. Say it now.");
-        setTimeout(round, Math.max(2500, text.length * 400));
+        echoNote("Your turn. Say it now. I am listening.");
+        setTimeout(function () {
+          if (tok !== echoTok) return;
+          echoListen(text, tok, function (alts) {
+            if (tok !== echoTok) return;
+            if (alts === undefined) { echoNote("Your turn passed. Say it out loud."); setTimeout(round, 600); return; }
+            if (!alts) { echoNote("I did not hear you. Listen again."); setTimeout(round, 900); return; }
+            var t = nrm(text).replace(/ /g, ""), bd = 1e9, raw = "";
+            alts.forEach(function (a) { var d = lev(nrm(a).replace(/ /g, ""), t); if (d < bd) { bd = d; raw = a; } });
+            var ok = bd === 0 || (t.length > 5 && bd <= 1);
+            echoNote(ok ? "I heard: " + raw + ". That sounded right." : "I heard: " + raw + ". Listen again and try once more.");
+            if (n >= cnt) return;
+            setTimeout(round, 1800);
+          });
+        }, 500);
       });
     })();
   }
