@@ -566,6 +566,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
 .rows li .pact, .mode .rows li .pact { margin: 6px 0 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .pact .btn { white-space: nowrap; }
 /* Say it page */
+.vrow { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.vlip { color: var(--accent, #1f4a3d); flex: 0 0 auto; }
 .beats { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 10px 0; }
 .beat { font-size: 1.1rem; padding: 12px 18px; min-width: 56px; }
 .beat.st { font-size: 1.5rem; font-weight: 700; padding: 16px 24px; }
@@ -1412,14 +1414,35 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     }
     persist();
   }
+  var VOW5 = [
+    { l: "A", w: "la", ph: "ah", rx: 34, ry: 22, tip: "Open your mouth wide and drop your jaw. Like at the doctor saying ahh." },
+    { l: "E", w: "me", ph: "eh", rx: 36, ry: 12, tip: "Open your mouth a little, with a small smile. Like the e in bed." },
+    { l: "I", w: "sì", ph: "ee", rx: 40, ry: 5, tip: "Smile wide, lips flat and stretched, teeth close together. Like the ee in see." },
+    { l: "O", w: "no", ph: "oh", rx: 18, ry: 18, tip: "Make a round shape with your lips, like a small circle. Keep it steady and do not slide into w." },
+    { l: "U", w: "tu", ph: "oo", rx: 11, ry: 11, tip: "Push your lips forward into a small, tight circle. Like the oo in moon." }
+  ];
+  function lipSVG(v) {
+    return '<svg width="96" height="64" viewBox="0 0 96 64" role="img" aria-label="Lip shape for ' + v.l + '"><ellipse cx="48" cy="32" rx="' + (v.rx + 8) + '" ry="' + (v.ry + 7) + '" fill="none" stroke="currentColor" stroke-width="5"/><ellipse cx="48" cy="32" rx="' + v.rx + '" ry="' + v.ry + '" fill="currentColor" opacity="0.55"/></svg>';
+  }
+  function sayVowelsHTML() {
+    var h = '<section class="pagehead"><h1>Start with the vowels</h1><p class="lede">Italian vowels are always the same. Copy the lip shape, hear it, then say it.</p></section>';
+    h += '<section class="panel"><p class="tip" id="echoMsg" role="status" aria-live="polite">Press Echo on a vowel. I will listen.</p><p class="hint" id="echoDiag"></p><div class="audio"><button type="button" class="btn sm" data-act="echostop">Stop</button><button type="button" class="btn sm" data-act="saylist"><strong>All words</strong></button></div></section>';
+    VOW5.forEach(function (v) {
+      h += '<section class="panel"><div class="vrow"><div class="vlip">' + lipSVG(v) + '</div><div><h2>' + v.l + ' <span class="ren">sounds like "' + v.ph + '"</span></h2><p class="tip">' + esc(v.tip) + '</p></div></div><div class="audio"><button type="button" class="btn sm primary" data-act="speakslow" data-t="' + esc(v.w) + '">' + SPK_SM + ' Hear "' + esc(v.w) + '"</button><button type="button" class="btn sm" data-act="echo" data-t="' + esc(v.w) + '" data-n="3">Echo</button></div></section>';
+    });
+    return h;
+  }
+  function sayToday() {
+    var t = dayKey(); return CARDS.filter(function (x) { return S.say[x.id] && S.say[x.id].last === t; }).length;
+  }
   function sayHardHTML() {
     sayInit();
     var keys = Object.keys(S.hard).filter(function (k) { return S.hard[k] > 0 && SND_INFO[k]; }).sort(function (a, b) { return S.hard[b] - S.hard[a]; });
     var h = '<section class="pagehead"><h1>My hard sounds</h1><p class="lede">Sounds from the words you marked as needing more practice.</p></section>';
-    if (!keys.length) h += '<section class="panel"><p class="lede">Nothing here yet. When you finish a word, choose "Needs more practice" and its tricky sounds will show up here.</p></section>';
+    if (!keys.length) h += '<section class="panel"><p class="tip">Nothing here yet. When you finish a word, choose "Needs more practice" and its tricky sounds will show up here.</p></section>';
     keys.forEach(function (k) {
       var words = CARDS.filter(function (c) { return S.say[c.id] && S.say[c.id].hard && soundKeys(c).indexOf(k) >= 0; });
-      h += '<section class="panel"><h2>' + esc(SND_INFO[k][0]) + '</h2><p class="lede">' + esc(SND_INFO[k][1]) + '</p><ul class="rows">' + words.map(function (c) {
+      h += '<section class="panel"><h2>' + esc(SND_INFO[k][0]) + '</h2><p class="tip">' + esc(SND_INFO[k][1]) + '</p><ul class="rows">' + words.map(function (c) {
         return '<li><span class="rit" lang="it">' + esc(c.it) + '</span><span class="ren">' + esc(c.en) + '</span><span class="pact"><button type="button" class="btn sm primary" data-act="sayword" data-id="' + c.id + '">Practice</button></span></li>';
       }).join("") + "</ul></section>";
     });
@@ -1430,10 +1453,11 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     sayInit();
     var c = sayId && BYID[sayId];
     if (!c && sayView === "hard") return sayHardHTML();
+    if (!c && sayView === "vowels") return sayVowelsHTML();
     if (!c) {
       var t0 = dayKey();
       var due = CARDS.filter(function (x) { var r = S.say[x.id]; return r && r.due <= t0; });
-      var h = '<section class="pagehead"><h1>Pronounce a word</h1><p class="lede">Pick a word to practice saying out loud.</p></section>';
+      var h = '<section class="pagehead"><h1>Pronounce a word</h1><p class="lede">Pick a word to practice saying out loud.</p></section><section class="panel"><p class="tip"><strong>Today: ' + sayToday() + ' of 3 words.</strong>' + (sayToday() >= 3 ? ' That is enough for today. Rest, and come back tomorrow.' : ' Three is plenty. Stop when you reach 3.') + '</p><div class="audio"><button type="button" class="btn sm primary" data-act="sayvowels"><strong>Start with the vowels</strong></button></div></section>';
       if (Object.keys(S.hard).some(function (k) { return S.hard[k] > 0; })) h += '<section class="panel"><div class="audio"><button type="button" class="btn sm primary" data-act="sayhard"><strong>My hard sounds</strong></button></div></section>';
       if (due.length) h += '<section class="panel"><h2>Practice again today</h2><ul class="rows">' + due.map(function (x) {
         return '<li><span class="rit" lang="it">' + esc(x.it) + '</span><span class="ren">' + esc(x.en) + '</span><span class="pact"><button type="button" class="btn sm primary" data-act="sayword" data-id="' + x.id + '">Practice</button></span></li>';
@@ -2054,10 +2078,11 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       case "sayme": openSay("snd:" + t.getAttribute("data-t"), { it: t.getAttribute("data-t"), ph: t.getAttribute("data-p") || "", en: t.getAttribute("data-e") || "" }); break;
       case "resumesess": showHome = false; render(); break;
       case "saystep": echoTok++; echoStopSR(); pzStep = Math.max(0, Math.min(PZ_STEPS.length - 1, pzStep + Number(t.getAttribute("data-d")))); render(); window.scrollTo(0, 0); break;
+      case "sayvowels": sayView = "vowels"; sayId = ""; render(); window.scrollTo(0, 0); break;
       case "sayhard": sayView = "hard"; sayId = ""; render(); window.scrollTo(0, 0); break;
       case "playfirst": recPlayKept(id, "first"); break;
       case "playlast": recPlayKept(id, "last"); break;
-      case "sayfinish": echoTok++; echoStopSR(); sayFinish(id, t.getAttribute("data-v")); pzStep = 0; (function () { var nx = CARDS[CARDS.indexOf(BYID[id]) + 1]; sayId = nx ? nx.id : ""; sayView = ""; toast(t.getAttribute("data-v") === "hard" ? "Saved. I will bring it back tomorrow." : "Saved. Nice work."); render(); window.scrollTo(0, 0); })(); break;
+      case "sayfinish": echoTok++; echoStopSR(); sayFinish(id, t.getAttribute("data-v")); pzStep = 0; (function () { var nx = CARDS[CARDS.indexOf(BYID[id]) + 1]; sayId = nx ? nx.id : ""; sayView = ""; toast(sayToday() >= 3 ? "That is 3 words. You are done for today. Well done!" : (t.getAttribute("data-v") === "hard" ? "Saved. I will bring it back tomorrow." : "Saved. Nice work.")); render(); window.scrollTo(0, 0); })(); break;
       case "sayword": echoTok++; pzStep = 0; sayView = ""; sayId = t.getAttribute("data-id"); if (view === "say") { render(); window.scrollTo(0, 0); } else window.location.hash = "#say"; break;
       case "saylist": pzStep = 0; sayView = ""; sayId = ""; echoTok++; render(); break;
       case "speakslow": speak(t.getAttribute("data-t"), 0.55); break;
