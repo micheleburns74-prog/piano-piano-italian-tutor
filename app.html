@@ -1160,7 +1160,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return '<header class="top"><div class="top-in"><div class="mark"><svg class="logo" viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" focusable="false" fill="currentColor"><rect x="1" y="7" width="3" height="6" rx="1.5"/><rect x="7" y="3" width="3" height="14" rx="1.5"/><rect x="13" y="0" width="3" height="20" rx="1.5"/><rect x="19" y="4" width="3" height="12" rx="1.5"/><rect x="25" y="7" width="3" height="6" rx="1.5"/></svg><span class="word">Piano Piano</span><span class="tag">Italian, a little at a time</span></div>' +
       '<nav class="tabs" aria-label="Sections">' + (S.prefs.simple || S.prefs.focus
         ? tab("today", "Today") + '<a href="#more"' + (view !== "today" ? ' aria-current="page"' : "") + ">More</a>"
-        : tab("today", "Today") + tabG(["phrases", "listening", "sounds", "say", "read", "lists", "pairs"], "phrases", "Practice") + tabG(["plan", "lesson"], "plan", "Lesson plan") + tab("tutor", "Coach") + tabG(["progress", "sessions"], "progress", "My progress") + tab("settings", "Settings")) + "</nav></div></header>";
+        : tab("today", "Today") + tabG(["phrases", "listening", "sounds", "say", "lists", "pairs"], "phrases", "Practice") + tab("read", "Read") + tabG(["plan", "lesson"], "plan", "Lesson plan") + tab("tutor", "Coach") + tabG(["progress", "sessions"], "progress", "My progress") + tab("settings", "Settings")) + "</nav></div></header>";
   }
 
   function browserCheckHTML() {
@@ -1623,7 +1623,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var more = S.prefs.focus ? "" : friday + '<p class="note"><button type="button" class="link" data-act="focuson">Too much on screen? Show only the Start button</button></p>';
     var facts = '<ul class="facts" aria-label="Your progress"><li><b>' + daysPracticed() + "</b><span>days practiced</span></li><li><b>" + S.sessions.length + "</b><span>sessions finished</span></li><li><b>" + totalSaid() + "</b><span>times spoken aloud</span></li><li><b>" + knownCount() + "</b><span>phrases you know</span></li></ul>";
     var kn0 = knownCount();
-    var nextGoal = stageOpen("read") ? '<p class="keep"><strong>Next goal.</strong> Reading practice is open. Try it in the <a class="link" href="#plan">Lesson plan</a> when you like.</p>' : '<p class="keep"><strong>Next goal.</strong> ' + (kn0 ? "Know " + pl(10 - kn0, "more phrase") + " to open Read it." : "Know 10 phrases to open Read it.") + " You know " + kn0 + " now.</p>";
+    var nextGoal = stageOpen("read") ? '<p class="keep"><strong>Next goal.</strong> Reading practice is open. Try it on the <a class="link" href="#read">Read</a> tab when you like.</p>' : '<p class="keep"><strong>Next goal.</strong> ' + (kn0 ? "Know " + pl(10 - kn0, "more phrase") + " to open Read it." : "Know 10 phrases to open Read it.") + " You know " + kn0 + " now.</p>";
     var howTo = "";
     var gr = greeting();
     var hero = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>" + (S.sessions.length ? "Today" : "Welcome to Piano Piano") + "</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button></div><div class="row"><a class="btn" href="#all">All lessons, from the beginning</a></div><p class="hint">Next up: ' + (rec === "mix" ? "Build on it" : "New words") + ". Just tap this and follow along.</p>" + nextGoal + howTo + quickLink + whereWasI() + weekDotsHTML() + reviewOnly + "</section>";
@@ -1634,7 +1634,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       var recCard = rec === "mix" ? mixCard : newCard, other = rec === "mix" ? newCard : mixCard;
       return hero + '<div class="modes one">' + recCard + "</div>" + quickPanel + '<details class="more-opts"><summary>Other ways to practice</summary><div class="modes">' + other + "</div></details>";
     }
-    return hero + '<div class="modes">' + modes + "</div>" + weekSoundHTML() + more;
+    return hero + '<div class="modes">' + modes + "</div>" + readTodayHTML() + weekSoundHTML() + more;
   }
   function daysSinceActive() {
     var last = "";
@@ -1943,7 +1943,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
 
   /* ---------- Render and routing ---------- */
-  var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["say", "Pronounce"], ["read", "Read"], ["lists", "My word lists"], ["pairs", "Which one?"]];
+  var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["say", "Pronounce"], ["lists", "My word lists"], ["pairs", "Which one?"]];
   function render() {
     applyPersonal();
     try {
@@ -1955,7 +1955,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (hd) helpOpen = hd.open;
     var body = view === "phrases" ? phrasesHTML() : view === "progress" ? progressHTML() : view === "tutor" ? tutorHTML() : view === "listening" ? listeningHTML() : view === "plan" ? planHTML() : view === "lesson" ? lessonHTML() : view === "sounds" ? soundsHTML() : view === "all" ? allHTML() : view === "say" ? sayHTML() : view === "read" ? readPageHTML() : view === "lists" ? listsHTML() : view === "pairs" ? pairsHTML() : view === "more" ? moreHTML() : view === "sessions" ? sessionsHTML() : view === "settings" ? settingsHTML() : todayHTML();
     if (view === "listening" && !(dict && !dict.done)) body = subNav(PRACTICE_NAV) + body;
-    else if (view === "phrases" || view === "sounds" || view === "say" || view === "read" || view === "lists" || view === "pairs") body = subNav(PRACTICE_NAV) + body;
+    else if (view === "phrases" || view === "sounds" || view === "say" || view === "lists" || view === "pairs") body = subNav(PRACTICE_NAV) + body;
     else if (view === "progress" || view === "sessions") body = subNav([["progress", "This week"], ["sessions", "Finished sessions"]]) + body;
     app.innerHTML = headerHTML() + '<div class="wrap"><main id="main">' + body + '</main><p class="status" id="status">' + esc(statusText) + '</p><footer class="foot">Piano Piano ' + VERSION + ' &middot; <a href="https://micheleburns74-prog.github.io/piano-piano-italian-tutor/#privacy" target="_blank" rel="noopener">Privacy and terms</a> &middot; <a href="https://github.com/micheleburns74-prog/piano-piano-italian-tutor/issues" target="_blank" rel="noopener">Send feedback</a></footer></div>';
     try {
@@ -2561,6 +2561,10 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     }
     for (var i = 0; i < SOUNDS.length; i++) if (SOUNDS[i].id === S.weekSnd.id) return SOUNDS[i];
     return SOUNDS[0];
+  }
+  function readTodayHTML() {
+    var r = (S.read && typeof S.read === "object") ? S.read : {}, tot = RD_ITEMS.length, kn = RD_ITEMS.filter(function (x) { return (r[x[0]] || 0) >= 2; }).length;
+    return '<section class="panel"><div class="mhead"><h2>Read it</h2><span class="chip">' + kn + " of " + tot + '</span></div><p class="keep">Signs and menu words you will see in Italy, like Uscita and Bagno. Reading is easier than hearing, so this is a good place to start.</p><div class="row"><a class="btn primary" href="#read">Read a few words</a></div></section>';
   }
   function weekSoundHTML() {
     var sd = weekSound(), n = (S.sounds[sd.id] && S.sounds[sd.id].n) || 0;
