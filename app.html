@@ -1274,7 +1274,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return out.slice(0, 5);
   }
   function echoNote(m) { var el = document.getElementById("echoMsg"); if (el) el.textContent = m; }
-  var echoErr = "", echoSR = null, echoLog = [];
+  var echoErr = "", echoSR = null, echoLog = [], echoSpoke = false;
   function elog(m) { try { var a = JSON.parse(localStorage.getItem("pp-echolog") || "[]"); a.push(new Date().toISOString().slice(11, 23) + " " + m); localStorage.setItem("pp-echolog", JSON.stringify(a.slice(-120))); } catch (e) {} }
   function echoDiag(m) { elog(m); echoLog.push(m); if (echoLog.length > 8) echoLog.shift(); var el = document.getElementById("echoDiag"); if (el) el.textContent = "Mic log: " + echoLog.join(", "); }
   function echoStopSR(after) {
@@ -1286,26 +1286,29 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     setTimeout(go, 700);
   }
   function echoListen(text, tok, done) {
-    var win = Math.max(6000, text.length * 700), fin = false, tm, t0 = Date.now(), n = 0;
+    var win = Math.max(9000, text.length * 900), fin = false, tm, t0 = Date.now(), n = 0, last = null, deb = 0; echoSpoke = false;
     if (!SR || location.protocol === "file:" || !S.prefs.check) { setTimeout(function () { done(undefined); }, win); return; }
     echoErr = ""; elog("ROUND listen window " + win + "ms");
-    function end(v) { if (fin) return; fin = true; clearTimeout(tm); echoStopSR(function () { if (tok === echoTok) done(v); }); }
+    function end(v) { if (fin) return; fin = true; clearTimeout(tm); clearTimeout(deb); if (!v && last) v = last; echoStopSR(function () { if (tok === echoTok) done(v); }); }
     tm = setTimeout(function () { end(null); }, win);
     (function one() {
       if (fin || tok !== echoTok) return;
       var r; try { r = new SR(); } catch (e) { echoDiag("no recognizer"); return; }
-      echoSR = r; r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = true;
+      echoSR = r; r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = true; r.continuous = true;
       r.onstart = function () { echoDiag("listening"); };
       r.onaudiostart = function () { elog("audiostart"); };
       r.onsoundstart = function () { elog("soundstart"); };
-      r.onspeechstart = function () { elog("speechstart"); };
+      r.onspeechstart = function () { elog("speechstart"); echoSpoke = true; };
       r.onspeechend = function () { elog("speechend"); };
       r.onresult = function (e) {
         elog("result " + (e.results.length) + (echoSR !== r ? " STALE" : ""));
         if (echoSR !== r) return;
         var res = e.results[e.results.length - 1], a = [];
         for (var j = 0; j < res.length; j++) a.push(res[j].transcript);
-        echoDiag("heard"); if (a.length && a[0]) end(a);
+        if (!(a.length && a[0])) return;
+        last = a; echoDiag("heard");
+        clearTimeout(deb);
+        if (res.isFinal) end(a); else deb = setTimeout(function () { end(a); }, 1300);
       };
       r.onerror = function (e) { var er = (e && e.error) || "error"; echoDiag(er); if (er !== "no-speech" && er !== "aborted") echoErr = er; };
       r.onend = function () { elog("end" + (echoSR === r ? "" : " (old)") + (fin ? " fin" : "")); if (echoSR === r && !fin && Date.now() - t0 < win - 800) { n++; echoSR = null; setTimeout(one, echoErr ? 600 : 200); } };
@@ -1328,6 +1331,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
           echoListen(text, tok, function (alts) {
             if (tok !== echoTok) return;
             if (alts === undefined) { echoNote("Your turn passed. Say it out loud. " + score()); setTimeout(round, 1500); return; }
+            if (!alts && echoSpoke && !echoErr) { heard++; echoNote("I heard you speak, but could not make out the word. " + score()); setTimeout(round, 2200); return; }
             if (!alts) { echoNote((echoErr ? "The microphone had a problem (" + echoErr + "). " : "I did not hear you. ") + score()); setTimeout(round, 1800); return; }
             var t = nrm(text).replace(/ /g, ""), bd = 1e9, raw = "";
             alts.forEach(function (a) { var d = lev(nrm(a).replace(/ /g, ""), t); if (d < bd) { bd = d; raw = a; } });
