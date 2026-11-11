@@ -1345,7 +1345,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function sayHTML() {
     var c = sayId && BYID[sayId];
     if (!c) {
-      var h = '<section class="pagehead"><h1>Say it</h1><p class="lede">Pick a word to practice saying, one small piece at a time.</p></section>';
+      var h = '<section class="pagehead"><h1>Pronounce a word</h1><p class="lede">Pick a word to practice saying out loud.</p></section>';
       SETS.forEach(function (st, si) {
         h += '<section class="panel"><h2>Set ' + (si + 1) + ": " + esc(st.title) + '</h2><ul class="rows">' + CARDS.filter(function (x) { return x.set === si; }).map(function (x) {
           return '<li><span class="rit" lang="it">' + esc(x.it) + '</span><span class="ren">' + esc(x.en) + '</span><span class="pact"><button type="button" class="btn sm primary" data-act="sayword" data-id="' + x.id + '">Practice saying</button></span></li>';
@@ -1752,7 +1752,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
 
   /* ---------- Render and routing ---------- */
-  var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["say", "Say it"], ["lists", "My word lists"], ["pairs", "Which one?"]];
+  var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["say", "Pronounce"], ["lists", "My word lists"], ["pairs", "Which one?"]];
   function render() {
     applyPersonal();
     try {
