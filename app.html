@@ -2494,14 +2494,33 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function chkStart(h, key, again) {
     if (!S.prefs.check || !SR || (key !== "w" && key !== "word") || !chkCard(h)) return;
     h.fb = null; h.fbBusy = true;
-    try {
-      var r = new SR(); r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = false;
-      r.onresult = function (e) { if (recState.sr !== r) return; var alts = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript); h.fb = { alts: alts }; };
-      r.onerror = function (e) { if (recState.sr !== r) return; h.fb = { err: (e && e.error) || "error" }; };
-      var began = false; r.onstart = function () { began = true; };
-      r.onend = function () { if (recState.sr !== r) return; h.fbBusy = false; if (!h.fb) h.fb = began ? { alts: [] } : { err: "unavailable" }; recState.sr = null; again(); try { fbSay(h); } catch (e) {} };
-      recState.sr = r; setTimeout(function () { if (recState.sr === r) { try { r.start(); } catch (e) { h.fbBusy = false; recState.sr = null; again(); } } }, 250);
-    } catch (e) { h.fbBusy = false; }
+    var tries = 0, everBegan = false, myTok = fbToken;
+    function recording() { return !!(recState.rec && recState.rec.state === "recording"); }
+    function finish(r) {
+      h.fbBusy = false; recState.sr = null;
+      if (!h.fb) h.fb = everBegan ? { alts: [] } : { err: "unavailable" };
+      again(); setTimeout(function () { if (myTok === fbToken) { try { fbSay(h); } catch (e) {} } }, 350);
+    }
+    function one() {
+      var r;
+      try { r = new SR(); } catch (e) { h.fbBusy = false; return; }
+      r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = false;
+      r.onstart = function () { everBegan = true; };
+      r.onresult = function (e) {
+        if (recState.sr !== r) return;
+        var alts = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript);
+        if (alts.length && alts[0]) { h.fb = { alts: alts }; if (recording()) recStop(); }
+      };
+      r.onerror = function (e) { if (recState.sr !== r) return; var er = (e && e.error) || "error"; if (er !== "no-speech" && er !== "aborted") h.fb = { err: er }; };
+      r.onend = function () {
+        if (recState.sr !== r) return;
+        if (!h.fb && recording() && tries < 8) { tries++; recState.sr = null; setTimeout(function () { if (myTok === fbToken && recording()) { recState.sr = null; one(); } else if (myTok === fbToken) finish(null); }, 150); return; }
+        finish(r);
+      };
+      recState.sr = r;
+      setTimeout(function () { if (recState.sr === r) { try { r.start(); } catch (e) { recState.sr = null; h.fbBusy = false; again(); } } }, tries ? 0 : 250);
+    }
+    one();
   }
   function fbSay(h) {
     var f = h.fb, c = chkCard(h); if (!f || f.err || !c) return;
