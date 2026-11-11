@@ -565,6 +565,12 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
 .rows li .ren, .mode .rows li .ren { flex: none; }
 .rows li .pact, .mode .rows li .pact { margin: 6px 0 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .pact .btn { white-space: nowrap; }
+.rdsign { font-family: Georgia, serif; font-size: 2.6rem; font-weight: 700; text-align: center; padding: 28px 12px; margin: 4px 0 14px; border: 3px solid currentColor; border-radius: 10px; letter-spacing: .02em; overflow-wrap: anywhere; }
+.rdopts { display: grid; gap: 10px; margin: 8px 0 14px; }
+.rdopt { text-align: left; font-size: 1.05rem; padding: 14px 16px; }
+.rdok { background: #d9eedd !important; border-color: #2f7d46 !important; color: #14391f !important; }
+.rdbad { background: #f6dcd8 !important; border-color: #b3382c !important; color: #5a1a13 !important; }
+
 /* Say it page */
 .vrow { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
 .vlip { color: var(--accent, #1f4a3d); flex: 0 0 auto; }
@@ -908,7 +914,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (!("speechSynthesis" in window)) { toast("This browser cannot speak. Use the Google Translate link."); if (onend) onend(); return; }
     try {
       var ss = window.speechSynthesis;
-      if (ss.speaking || ss.pending) ss.cancel();
+      var busy = ss.speaking || ss.pending; if (busy) ss.cancel();
       var u = new SpeechSynthesisUtterance(text);
       u.lang = voice ? voice.lang : "it-IT";
       if (voice) u.voice = voice;
@@ -921,7 +927,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         u.onerror = fin;
         setTimeout(fin, Math.max(4000, text.length * 160 / (rate || 0.85)));
       }
-      ss.speak(u);
+      if (busy) setTimeout(function () { try { ss.speak(u); } catch (e) {} }, 150); else ss.speak(u);
     } catch (e) { toast("The voice did not start. Try the Google Translate link."); if (onend) onend(); }
   }
 
@@ -1154,7 +1160,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return '<header class="top"><div class="top-in"><div class="mark"><svg class="logo" viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" focusable="false" fill="currentColor"><rect x="1" y="7" width="3" height="6" rx="1.5"/><rect x="7" y="3" width="3" height="14" rx="1.5"/><rect x="13" y="0" width="3" height="20" rx="1.5"/><rect x="19" y="4" width="3" height="12" rx="1.5"/><rect x="25" y="7" width="3" height="6" rx="1.5"/></svg><span class="word">Piano Piano</span><span class="tag">Italian, a little at a time</span></div>' +
       '<nav class="tabs" aria-label="Sections">' + (S.prefs.simple || S.prefs.focus
         ? tab("today", "Today") + '<a href="#more"' + (view !== "today" ? ' aria-current="page"' : "") + ">More</a>"
-        : tab("today", "Today") + tabG(["phrases", "listening", "sounds", "say", "lists", "pairs"], "phrases", "Practice") + tabG(["plan", "lesson"], "plan", "Lesson plan") + tab("tutor", "Coach") + tabG(["progress", "sessions"], "progress", "My progress") + tab("settings", "Settings")) + "</nav></div></header>";
+        : tab("today", "Today") + tabG(["phrases", "listening", "sounds", "say", "read", "lists", "pairs"], "phrases", "Practice") + tabG(["plan", "lesson"], "plan", "Lesson plan") + tab("tutor", "Coach") + tabG(["progress", "sessions"], "progress", "My progress") + tab("settings", "Settings")) + "</nav></div></header>";
   }
 
   function browserCheckHTML() {
@@ -1294,7 +1300,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     (function one() {
       if (fin || tok !== echoTok) return;
       var r; try { r = new SR(); } catch (e) { echoDiag("no recognizer"); return; }
-      echoSR = r; r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = true; r.continuous = true;
+      echoSR = r; r.lang = "it-IT"; r.maxAlternatives = 5;
+      try { var GL = window.SpeechGrammarList || window.webkitSpeechGrammarList; if (GL && text && /^[a-zà-ÿ' ]+$/i.test(text)) { var gg = new GL(); gg.addFromString("#JSGF V1.0; grammar w; public <w> = " + text.toLowerCase() + " ;", 1); r.grammars = gg; } } catch (e) {} r.interimResults = true; r.continuous = true;
       r.onstart = function () { echoDiag("listening"); };
       r.onaudiostart = function () { elog("audiostart"); };
       r.onsoundstart = function () { elog("soundstart"); };
@@ -1316,16 +1323,16 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     })();
   }
   function echoDrill(text, cnt) {
-    var tok = ++echoTok, n = 0, heard = 0, right = 0;
+    var tok = ++echoTok, n = 0, heard = 0, right = 0, short = nrm(text).replace(/ /g, "").length <= 5;
     function score() { return "Heard " + heard + " of " + cnt + ", sounded right " + right + " of " + cnt + "."; }
     echoStopSR(function () {
     (function round() {
       if (tok !== echoTok) return;
       if (n >= cnt) { echoNote("Done. " + score()); return; }
       n++; echoNote("Listen (" + n + " of " + cnt + ")");
-      speak(text, 0.55, function () {
+      speak(short ? text + ", " + text : text, 0.55, function () {
         if (tok !== echoTok) return;
-        echoNote("Your turn. Say it now. I am listening.");
+        echoNote(short ? "Your turn. Say it twice in a row. I am listening." : "Your turn. Say it now. I am listening.");
         setTimeout(function () {
           if (tok !== echoTok) return;
           echoListen(text, tok, function (alts) {
@@ -1334,8 +1341,11 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
             if (!alts && echoSpoke && !echoErr) { heard++; echoNote("I heard you speak, but could not make out the word. " + score()); setTimeout(round, 2200); return; }
             if (!alts) { echoNote((echoErr ? "The microphone had a problem (" + echoErr + "). " : "I did not hear you. ") + score()); setTimeout(round, 1800); return; }
             var t = nrm(text).replace(/ /g, ""), bd = 1e9, raw = "";
-            alts.forEach(function (a) { var d = lev(nrm(a).replace(/ /g, ""), t); if (d < bd) { bd = d; raw = a; } });
-            var ok = bd === 0 || (t.length > 5 && bd <= 1);
+            alts.forEach(function (a) {
+              var d = lev(nrm(a).replace(/ /g, ""), t); if (d < bd) { bd = d; raw = a; }
+              if (short) nrm(a).split(" ").forEach(function (w) { var d2 = lev(w, t); if (d2 < bd) { bd = d2; raw = a; } });
+            });
+            var ok = bd === 0 || ((t.length > 5 || (short && t.length >= 3)) && bd <= 1);
             heard++; if (ok) right++;
             echoNote("I heard: " + raw + ". " + (ok ? "That sounded right. " : "Not quite. ") + score());
             setTimeout(round, 2200);
@@ -1457,6 +1467,51 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       }).join("") + "</ul></section>";
     });
     return h + '<section class="panel"><div class="audio"><button type="button" class="btn sm" data-act="saylist"><strong>All words</strong></button></div></section>';
+  }
+  var RD_ITEMS = [
+    ["Bagno", "Bathroom", "signs"], ["Uomini", "Men", "signs"], ["Donne", "Women", "signs"], ["Signori", "Men (formal)", "signs"], ["Signore", "Women (formal)", "signs"],
+    ["Entrata", "Entrance", "signs"], ["Uscita", "Exit", "signs"], ["Spingere", "Push", "signs"], ["Tirare", "Pull", "signs"], ["Aperto", "Open", "signs"],
+    ["Chiuso", "Closed", "signs"], ["Vietato", "Forbidden", "signs"], ["Attenzione", "Caution", "signs"], ["Pericolo", "Danger", "signs"], ["Biglietti", "Tickets", "signs"],
+    ["Farmacia", "Pharmacy", "signs"], ["Ospedale", "Hospital", "signs"], ["Stazione", "Station", "signs"], ["Fermata", "Bus stop", "signs"], ["Libero", "Free, vacant", "signs"], ["Occupato", "Occupied", "signs"],
+    ["Antipasti", "Starters", "menu"], ["Primi", "First courses (pasta, soup)", "menu"], ["Secondi", "Main courses (meat, fish)", "menu"], ["Contorni", "Side dishes", "menu"], ["Dolci", "Desserts", "menu"],
+    ["Bevande", "Drinks", "menu"], ["Acqua", "Water", "menu"], ["Vino", "Wine", "menu"], ["Birra", "Beer", "menu"], ["Caffè", "Coffee", "menu"],
+    ["Pane", "Bread", "menu"], ["Coperto", "Cover charge", "menu"], ["Il conto", "The bill", "menu"], ["Pollo", "Chicken", "menu"], ["Carne", "Meat", "menu"],
+    ["Pesce", "Fish", "menu"], ["Formaggio", "Cheese", "menu"], ["Insalata", "Salad", "menu"], ["Zuppa", "Soup", "menu"], ["Gelato", "Ice cream", "menu"]
+  ];
+  var rdState = { kind: "", q: [], cur: null, picked: -1, opts: [], first: 0, total: 0, missed: {}, done: false };
+  function rdNext() {
+    var st = rdState;
+    if (!st.q.length) { st.cur = null; st.done = true; return; }
+    var it = st.q.shift(); st.cur = it; st.picked = -1;
+    var pool = RD_ITEMS.filter(function (x) { return x[2] === it[2] && x[0] !== it[0]; });
+    st.opts = shuffle(shuffle(pool.slice()).slice(0, 2).concat([it]));
+  }
+  function readPageHTML() {
+    if (!S.read || typeof S.read !== "object") S.read = {};
+    var st = rdState;
+    var h = '<section class="pagehead"><h1>Read signs and menus</h1></section>';
+    if (!st.kind) {
+      [["signs", "Signs", "Bathroom, exit, push, pull, open, closed"], ["menu", "Restaurant menus", "Starters, mains, drinks, the bill"]].forEach(function (k) {
+        var all = RD_ITEMS.filter(function (x) { return x[2] === k[0]; }), known = all.filter(function (x) { return (S.read[x[0]] || 0) >= 2; }).length;
+        h += '<section class="panel"><h2>' + k[1] + '</h2><p class="tip">' + k[2] + '. You know ' + known + ' of ' + all.length + '.</p><div class="audio"><button type="button" class="btn sm primary" data-act="rdstart" data-k="' + k[0] + '"><strong>Start</strong></button></div></section>';
+      });
+      return h;
+    }
+    if (st.done) {
+      return h + '<section class="panel"><h2>Round done</h2><p class="tip">You got ' + st.first + ' of ' + st.total + ' right the first time.</p><div class="audio"><button type="button" class="btn sm primary" data-act="rdstart" data-k="' + st.kind + '"><strong>Another round</strong></button><button type="button" class="btn sm" data-act="rdlist"><strong>All lists</strong></button></div></section>';
+    }
+    var c = st.cur, ans = st.picked >= 0;
+    h += '<section class="panel"><div class="rdsign" lang="it">' + esc(c[0]) + '</div><div class="audio"><button type="button" class="btn sm" data-act="rdhear">' + SPK_SM + ' Hear it</button></div><p class="tip">What does it mean?</p><div class="rdopts">';
+    st.opts.forEach(function (o, i) {
+      var cls = "btn rdopt" + (ans ? (o[0] === c[0] ? " rdok" : (i === st.picked ? " rdbad" : "")) : "");
+      h += '<button type="button" class="' + cls + '" data-act="rdans" data-i="' + i + '"' + (ans ? " disabled" : "") + '>' + esc(o[1]) + "</button>";
+    });
+    h += "</div>";
+    if (ans) {
+      var good = st.opts[st.picked][0] === c[0];
+      h += '<p class="tip" role="status">' + (good ? "Yes. " : "Not quite. ") + esc(c[0]) + " means " + esc(c[1]) + '.</p><div class="audio"><button type="button" class="btn sm primary" data-act="rdnext"><strong>Next &rarr;</strong></button></div>';
+    }
+    return h + '<div class="audio"><button type="button" class="btn sm" data-act="rdlist"><strong>All lists</strong></button></div></section>';
   }
   function sayInit() { if (!S.say || typeof S.say !== "object") S.say = {}; if (!S.hard || typeof S.hard !== "object") S.hard = {}; }
   function sayHTML() {
@@ -1888,7 +1943,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
 
   /* ---------- Render and routing ---------- */
-  var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["say", "Pronounce"], ["lists", "My word lists"], ["pairs", "Which one?"]];
+  var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["say", "Pronounce"], ["read", "Read"], ["lists", "My word lists"], ["pairs", "Which one?"]];
   function render() {
     applyPersonal();
     try {
@@ -1898,9 +1953,9 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     stopEcho();
     var hd = app.querySelector("details.help");
     if (hd) helpOpen = hd.open;
-    var body = view === "phrases" ? phrasesHTML() : view === "progress" ? progressHTML() : view === "tutor" ? tutorHTML() : view === "listening" ? listeningHTML() : view === "plan" ? planHTML() : view === "lesson" ? lessonHTML() : view === "sounds" ? soundsHTML() : view === "all" ? allHTML() : view === "say" ? sayHTML() : view === "lists" ? listsHTML() : view === "pairs" ? pairsHTML() : view === "more" ? moreHTML() : view === "sessions" ? sessionsHTML() : view === "settings" ? settingsHTML() : todayHTML();
+    var body = view === "phrases" ? phrasesHTML() : view === "progress" ? progressHTML() : view === "tutor" ? tutorHTML() : view === "listening" ? listeningHTML() : view === "plan" ? planHTML() : view === "lesson" ? lessonHTML() : view === "sounds" ? soundsHTML() : view === "all" ? allHTML() : view === "say" ? sayHTML() : view === "read" ? readPageHTML() : view === "lists" ? listsHTML() : view === "pairs" ? pairsHTML() : view === "more" ? moreHTML() : view === "sessions" ? sessionsHTML() : view === "settings" ? settingsHTML() : todayHTML();
     if (view === "listening" && !(dict && !dict.done)) body = subNav(PRACTICE_NAV) + body;
-    else if (view === "phrases" || view === "sounds" || view === "say" || view === "lists" || view === "pairs") body = subNav(PRACTICE_NAV) + body;
+    else if (view === "phrases" || view === "sounds" || view === "say" || view === "read" || view === "lists" || view === "pairs") body = subNav(PRACTICE_NAV) + body;
     else if (view === "progress" || view === "sessions") body = subNav([["progress", "This week"], ["sessions", "Finished sessions"]]) + body;
     app.innerHTML = headerHTML() + '<div class="wrap"><main id="main">' + body + '</main><p class="status" id="status">' + esc(statusText) + '</p><footer class="foot">Piano Piano ' + VERSION + ' &middot; <a href="https://micheleburns74-prog.github.io/piano-piano-italian-tutor/#privacy" target="_blank" rel="noopener">Privacy and terms</a> &middot; <a href="https://github.com/micheleburns74-prog/piano-piano-italian-tutor/issues" target="_blank" rel="noopener">Send feedback</a></footer></div>';
     try {
@@ -1915,7 +1970,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   function route() {
     var h = (window.location.hash || "").replace("#", "");
-    var okv = { say: 1, all: 1, lesson: 1, plan: 1, pairs: 1, lists: 1, phrases: 1, tutor: 1, progress: 1, listening: 1, sounds: 1, sessions: 1, settings: 1, more: 1 };
+    var okv = { say: 1, read: 1, all: 1, lesson: 1, plan: 1, pairs: 1, lists: 1, phrases: 1, tutor: 1, progress: 1, listening: 1, sounds: 1, sessions: 1, settings: 1, more: 1 };
     view = okv[h] ? h : "today";
     if (view !== "listening" && plState.on) plStop(true);
     if (view === "listening" && dict && dict.done) dict = null;
@@ -2093,6 +2148,24 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       case "playfirst": recPlayKept(id, "first"); break;
       case "playlast": recPlayKept(id, "last"); break;
       case "sayfinish": echoTok++; echoStopSR(); sayFinish(id, t.getAttribute("data-v")); pzStep = 0; (function () { var nx = CARDS[CARDS.indexOf(BYID[id]) + 1]; sayId = nx ? nx.id : ""; sayView = ""; toast(sayToday() >= 3 ? "That is 3 words. You are done for today. Well done!" : (t.getAttribute("data-v") === "hard" ? "Saved. I will bring it back tomorrow." : "Saved. Nice work.")); render(); window.scrollTo(0, 0); })(); break;
+      case "rdstart": (function () {
+        if (!S.read) S.read = {};
+        var kind = t.getAttribute("data-k");
+        var items = RD_ITEMS.filter(function (x) { return x[2] === kind; }).sort(function (a, b) { return (S.read[a[0]] || 0) - (S.read[b[0]] || 0) + (Math.random() - 0.5); }).slice(0, 8);
+        rdState = { kind: kind, q: shuffle(items.slice()), cur: null, picked: -1, opts: [], first: 0, total: items.length, missed: {}, done: false };
+        rdNext(); render(); window.scrollTo(0, 0);
+      })(); break;
+      case "rdans": (function () {
+        var st = rdState, i = Number(t.getAttribute("data-i")); if (st.picked >= 0 || !st.cur) return;
+        st.picked = i; var good = st.opts[i][0] === st.cur[0], k = st.cur[0];
+        if (!S.read) S.read = {};
+        if (good) { S.read[k] = (S.read[k] || 0) + 1; if (!st.missed[k]) st.first++; }
+        else { st.missed[k] = 1; st.q.push(st.cur); S.read[k] = 0; }
+        persist(); render();
+      })(); break;
+      case "rdnext": rdNext(); render(); window.scrollTo(0, 0); break;
+      case "rdlist": rdState.kind = ""; rdState.done = false; render(); window.scrollTo(0, 0); break;
+      case "rdhear": if (rdState.cur) speak(rdState.cur[0], baseRate()); break;
       case "sayword": echoTok++; pzStep = 0; sayView = ""; sayId = t.getAttribute("data-id"); if (view === "say") { render(); window.scrollTo(0, 0); } else window.location.hash = "#say"; break;
       case "saylist": pzStep = 0; sayView = ""; sayId = ""; echoTok++; render(); break;
       case "speakslow": speak(t.getAttribute("data-t"), 0.55); break;
@@ -2786,7 +2859,6 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var done = false, to;
     function go() { if (done) return; done = true; clearTimeout(to); elog("cmp: playing recording"); setTimeout(playMine, 250); }
     elog("cmp: speaking model");
-    try { window.speechSynthesis.cancel(); } catch (e) {}
     speak(text, 0.6, function () { elog("cmp: model ended"); go(); });
     to = setTimeout(function () { elog("cmp: model timeout"); go(); }, 1500 + text.length * 220);
   }
