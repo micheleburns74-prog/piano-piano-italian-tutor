@@ -1270,8 +1270,9 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return out.slice(0, 5);
   }
   function echoNote(m) { var el = document.getElementById("echoMsg"); if (el) el.textContent = m; }
+  var echoErr = "";
   function echoListen(text, tok, done) {
-    var win = Math.max(4500, text.length * 600), t0 = Date.now(), got = null, cur = null, fin = false;
+    var win = Math.max(5500, text.length * 700), t0 = Date.now(), got = null, cur = null, fin = false, lastErr = ""; echoErr = "";
     function end() { if (fin) return; fin = true; try { cur && cur.abort(); } catch (e) {} done(got); }
     if (!SR || location.protocol === "file:" || !S.prefs.check) { setTimeout(function () { fin = true; done(undefined); }, win); return; }
     setTimeout(end, win);
@@ -1283,9 +1284,9 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         var a = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) a.push(e.results[i][j].transcript);
         if (a.length && a[0]) { got = a; end(); }
       };
-      r.onend = function () { if (!fin && !got && Date.now() - t0 < win - 600) setTimeout(one, 80); };
-      r.onerror = function () {};
-      try { r.start(); } catch (e) {}
+      r.onend = function () { if (cur === r && !fin && !got && Date.now() - t0 < win - 600) setTimeout(one, lastErr && lastErr !== "no-speech" ? 500 : 80); };
+      r.onerror = function (e) { if (cur === r) { lastErr = (e && e.error) || "error"; if (lastErr !== "no-speech" && lastErr !== "aborted") echoErr = lastErr; } };
+      try { r.start(); } catch (e) { lastErr = "start"; echoErr = "start"; setTimeout(one, 500); }
     })();
   }
   function echoDrill(text, cnt) {
@@ -1302,7 +1303,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
           echoListen(text, tok, function (alts) {
             if (tok !== echoTok) return;
             if (alts === undefined) { echoNote("Your turn passed. Say it out loud."); setTimeout(round, 600); return; }
-            if (!alts) { echoNote("I did not hear you. Listen again."); setTimeout(round, 900); return; }
+            if (!alts) { echoNote(echoErr ? "The microphone had a problem (" + echoErr + "). Listen again." : "I did not hear you. Listen again."); setTimeout(round, 900); return; }
             var t = nrm(text).replace(/ /g, ""), bd = 1e9, raw = "";
             alts.forEach(function (a) { var d = lev(nrm(a).replace(/ /g, ""), t); if (d < bd) { bd = d; raw = a; } });
             var ok = bd === 0 || (t.length > 5 && bd <= 1);
@@ -1310,7 +1311,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
             if (n >= cnt) return;
             setTimeout(round, 1800);
           });
-        }, 500);
+        }, 900);
       });
     })();
   }
