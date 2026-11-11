@@ -2464,9 +2464,17 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     fbToken++; try { if (recState.sr) { var old = recState.sr; recState.sr = null; old.abort(); } } catch (e) {}
     try { window.speechSynthesis.cancel(); } catch (e) {}
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      var chunks = [], mr = new MediaRecorder(stream);
+      var chunks = [], mr = new MediaRecorder(stream), lv = 0, ac = null;
+      h.peak = 0;
+      try {
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        var an = ac.createAnalyser(), buf = new Uint8Array(an.fftSize);
+        ac.createMediaStreamSource(stream).connect(an);
+        lv = setInterval(function () { an.getByteTimeDomainData(buf); var p = 0; for (var i = 0; i < buf.length; i++) p = Math.max(p, Math.abs(buf[i] - 128)); if (p > h.peak) h.peak = p; }, 80);
+      } catch (e) {}
       mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
       mr.onstop = function () {
+        clearInterval(lv); try { if (ac) ac.close(); } catch (e) {}
         try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
         var blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
         if (h.recs[key] && h.recs[key].url) { try { URL.revokeObjectURL(h.recs[key].url); } catch (e) {} }
@@ -2525,7 +2533,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function fbSay(h) {
     var f = h.fb, c = chkCard(h); if (!f || f.err || !c) return;
     var tok = fbToken;
-    if (!f.alts || !f.alts[0]) { speakEn("I could not hear you. Try again.", null, true); return; }
+    if (!f.alts || !f.alts[0]) { speakEn(h.peak >= 12 ? "I heard you, but I could not make out the word. Say the whole word together, not in pieces." : "I could not hear you. Try again.", null, true); return; }
     var t = nrm(c.it).replace(/ /g, ""), best = "", bd = 1e9;
     f.alts.forEach(function (a) { var n = nrm(a).replace(/ /g, ""), d = lev(n, t); if (d < bd) { bd = d; best = n; } });
     if (bd === 0) { speakEn("That sounded right.", null, true); return; }
@@ -2546,7 +2554,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (f.err === "unavailable" || f.err === "service-not-allowed") return '<p class="note">' + (location.protocol === "file:" ? 'Chrome does not run the pronunciation check on a file opened from your computer. Open Piano Piano from its web link instead.' : 'The pronunciation check could not start. Check that the microphone is allowed for this page, then try again.') + '</p>';
     if (f.err === "network") return '<p class="note">The pronunciation check needs an internet connection. Your recording still works.</p>';
     if (f.err && f.err !== "no-speech" && f.err !== "aborted") return '<p class="note">The pronunciation check is not working right now. Your recording still works.</p>';
-    if (!f.alts || !f.alts.length || !f.alts[0]) return '<p class="tip"><strong>I could not hear a word.</strong> Move a little closer and say it again.</p>';
+    if (!f.alts || !f.alts.length || !f.alts[0]) return (h.peak >= 12 ? '<p class="tip"><strong>I heard you, but could not make out the word.</strong> Say the whole word smoothly, all together, not in pieces.</p>' : '<p class="tip"><strong>I could not hear a word.</strong> Move a little closer and say it again.</p>');
     var t = nrm(c.it).replace(/ /g, ""), best = "", raw = "", bd = 1e9;
     f.alts.forEach(function (a) { var n = nrm(a).replace(/ /g, ""), d = lev(n, t); if (d < bd) { bd = d; best = n; raw = a; } });
     if (bd === 0) return '<p class="tip"><strong>That sounded right.</strong> I heard <span lang="it">' + esc(raw) + "</span>.</p>";
