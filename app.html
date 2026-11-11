@@ -1479,7 +1479,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var h2 = '<section class="panel">' + navH + '</section><section class="pagehead"><h1 lang="it">' + esc(c.it) + '</h1><p class="ph">' + phHTML(c.ph) + '</p><p class="lede">' + esc(c.en) + '</p></section>';
     h2 += '<section class="panel"><h2>Step ' + (s + 1) + " of " + PZ_STEPS.length + ": " + esc(PZ_STEPS[s]) + "</h2>";
     if (s === 0) {
-      h2 += '<div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"', "primary") + btn("Slow", "slow", ' data-id="' + c.id + '"') + '</div><p><a class="link" href="https://forvo.com/search/' + encodeURIComponent(c.it) + '/it/" target="_blank" rel="noopener">Hear a native speaker (opens Forvo)</a></p>';
+      h2 += '<div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"', "primary") + btn("Slow", "slow", ' data-id="' + c.id + '"') + '</div><p><a class="link" href="https://translate.google.com/?sl=it&tl=en&op=translate&text=' + encodeURIComponent(c.it) + '" target="_blank" rel="noopener">Hear it on Google Translate (no sign-up)</a>' + (c.it.indexOf(" ") < 0 ? ' &middot; <a class="link" href="https://en.wiktionary.org/wiki/' + encodeURIComponent(c.it.toLowerCase()) + '#Italian" target="_blank" rel="noopener">Real voice, if there is one</a>' : "") + '</p>';
     } else if (s === 1) {
       if (n > 1) h2 += '<ul class="rows">' + steps.map(function (tx) {
         return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Echo", "echo", ' data-t="' + esc(tx) + '" data-n="2"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
