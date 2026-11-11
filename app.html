@@ -1184,7 +1184,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
 
   function previewRows(list) {
     return '<ul class="rows">' + list.map(function (c) {
-      return '<li><span class="rit" lang="it">' + esc(c.it) + '</span><span class="ren">' + esc(c.en) + '</span><span class="pact"><button type="button" class="btn sm" data-act="listen" data-id="' + c.id + '">' + SPK_SM + " Listen</button></span></li>";
+      return '<li><span class="rit" lang="it">' + esc(c.it) + '</span><span class="ren">' + esc(c.en) + '</span><span class="pact"><button type="button" class="btn sm" data-act="listen" data-id="' + c.id + '">' + SPK_SM + " Listen</button>" + '<button type="button" class="btn sm" data-act="sayopen" data-id="' + c.id + '">Record me</button></span></li>';
     }).join("") + "</ul>";
   }
   function setsProgressHTML() {
@@ -1466,7 +1466,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       h += '<section class="set"><h2><span>Set ' + (si + 1) + "</span>" + esc(SETS[si].title) + '</h2><ul class="plist">';
       CARDS.filter(function (c) { return c.set === si; }).forEach(function (c) {
         h += '<li><div class="ptext"><p class="pit" lang="it">' + esc(c.it) + '</p><p class="pph">' + phHTML(c.ph) + '</p><p class="pen">' + esc(c.en) + '</p>' + (trickOf(c) ? '<p class="pen"><strong>Trick.</strong> ' + esc(trickOf(c)) + "</p>" : "") + '</div>' +
-          '<div class="pact">' + stChip(c.id) + '<button type="button" class="btn sm" data-act="listen" data-id="' + c.id + '">' + SPK + " Listen</button>" +
+          '<div class="pact">' + stChip(c.id) + '<button type="button" class="btn sm" data-act="listen" data-id="' + c.id + '">' + SPK + " Listen</button>" + '<button type="button" class="btn sm" data-act="sayopen" data-id="' + c.id + '">Record me</button>' +
           '<button type="button" class="btn sm" data-act="slow" data-id="' + c.id + '">Slow</button><button type="button" class="btn sm" data-act="chunks" data-dir="start" data-id="' + c.id + '">Chunks: start</button><button type="button" class="btn sm" data-act="chunks" data-dir="end" data-id="' + c.id + '">Chunks: end</button></div><div class="chunkbox" id="chunk-' + c.id + '" hidden></div></li>';
       });
       h += "</ul></section>";
@@ -1545,7 +1545,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       if (!ids.length) { h += '<p class="note">Nothing here yet.</p></section>'; return; }
       h += '<ul class="plist">' + ids.map(function (id) {
         var c = BYID[id];
-        return '<li><div class="ptext"><p class="pit" lang="it">' + esc(c.it) + '</p><p class="pph">' + phHTML(c.ph) + '</p><p class="pen">' + esc(c.en) + '</p>' + tallyLine(id) + '</div><div class="pact"><button type="button" class="btn sm" data-act="listen" data-id="' + id + '">' + SPK + ' Listen</button><button type="button" class="btn sm" data-act="slow" data-id="' + id + '">Slow</button><button type="button" class="btn sm" data-act="chunks" data-dir="' + chunkDir(id) + '" data-id="' + id + '">Chunks</button></div></li>';
+        return '<li><div class="ptext"><p class="pit" lang="it">' + esc(c.it) + '</p><p class="pph">' + phHTML(c.ph) + '</p><p class="pen">' + esc(c.en) + '</p>' + tallyLine(id) + '</div><div class="pact"><button type="button" class="btn sm" data-act="listen" data-id="' + id + '">' + SPK + ' Listen</button><button type="button" class="btn sm" data-act="sayopen" data-id="' + id + '">Record me</button><button type="button" class="btn sm" data-act="slow" data-id="' + id + '">Slow</button><button type="button" class="btn sm" data-act="chunks" data-dir="' + chunkDir(id) + '" data-id="' + id + '">Chunks</button></div></li>';
       }).join("") + '</ul><div><button type="button" class="btn primary" data-act="practicelist" data-r="' + r + '">Practice these (' + ids.length + ")</button></div></section>";
     });
     return h;
@@ -2464,9 +2464,20 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       r.onresult = function (e) { var alts = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript); h.fb = { alts: alts }; };
       r.onerror = function (e) { h.fb = { err: (e && e.error) || "error" }; };
       var began = false; r.onstart = function () { began = true; };
-      r.onend = function () { h.fbBusy = false; if (!h.fb) h.fb = began ? { alts: [] } : { err: "unavailable" }; recState.sr = null; again(); };
+      r.onend = function () { h.fbBusy = false; if (!h.fb) h.fb = began ? { alts: [] } : { err: "unavailable" }; recState.sr = null; again(); try { fbSay(h); } catch (e) {} };
       recState.sr = r; r.start();
     } catch (e) { h.fbBusy = false; }
+  }
+  function fbSay(h) {
+    var f = h.fb, c = chkCard(h); if (!f || f.err || !c) return;
+    if (!f.alts || !f.alts[0]) { speakEn("I could not hear you. Try again.", null, true); return; }
+    var t = nrm(c.it).replace(/ /g, ""), best = "", bd = 1e9;
+    f.alts.forEach(function (a) { var n = nrm(a).replace(/ /g, ""), d = lev(n, t); if (d < bd) { bd = d; best = n; } });
+    if (bd === 0) { speakEn("That sounded right.", null, true); return; }
+    var syls = glSyl(c), miss = syls.filter(function (x) { var n = nrm(x.t); return n && best.indexOf(n) < 0; });
+    speakEn("Not quite. Listen.", function () {
+      speak(c.it, 0.6, function () { if (miss.length && syls.length > 1) speakEn("Try this part.", function () { speak(miss[0].t, 0.5); }, true); });
+    }, true);
   }
   function fbHTML(h, key) {
     if ((key !== "w" && key !== "word") || !SR) return "";
@@ -2722,7 +2733,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       row("Sound drills", r.a.sounds, r.b.sounds) + "</tbody></table></div>";
     if (sh.length) {
       h += "<h2>Still shaky</h2><ul class=\"rows\">" + sh.map(function (c) {
-        return '<li><span class="rit" lang="it">' + esc(c.it) + '</span><span class="ren">' + esc(c.en) + '</span><span class="pact"><button type="button" class="btn sm" data-act="listen" data-id="' + c.id + '">' + SPK_SM + " Listen</button></span></li>";
+        return '<li><span class="rit" lang="it">' + esc(c.it) + '</span><span class="ren">' + esc(c.en) + '</span><span class="pact"><button type="button" class="btn sm" data-act="listen" data-id="' + c.id + '">' + SPK_SM + " Listen</button>" + '<button type="button" class="btn sm" data-act="sayopen" data-id="' + c.id + '">Record me</button></span></li>';
       }).join("") + "</ul>";
     }
     h += '<h2>Plan for next week</h2><ul class="plan">' + planLines().map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>" +
@@ -3175,7 +3186,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     h += '<section class="panel"><h2>Work on this next</h2>';
     if (sh.length) {
       h += '<p class="hint">These phrases felt shaky. Tap one for a guided lesson.</p><ul class="rows">' + sh.map(function (c) {
-        return '<li><span class="rit" lang="it">' + esc(c.it) + '</span><span class="ren">' + esc(c.en) + '</span><span class="pact"><button type="button" class="btn sm" data-act="listen" data-id="' + c.id + '">' + SPK_SM + ' Listen</button> <button type="button" class="btn sm primary" data-act="glword" data-id="' + c.id + '">Guided lesson</button></span></li>';
+        return '<li><span class="rit" lang="it">' + esc(c.it) + '</span><span class="ren">' + esc(c.en) + '</span><span class="pact"><button type="button" class="btn sm" data-act="listen" data-id="' + c.id + '">' + SPK_SM + ' Listen</button><button type="button" class="btn sm" data-act="sayopen" data-id="' + c.id + '">Record me</button> <button type="button" class="btn sm primary" data-act="glword" data-id="' + c.id + '">Guided lesson</button></span></li>';
       }).join("") + "</ul>";
     } else {
       var nx = glPickNext();
