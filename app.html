@@ -1357,17 +1357,17 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var ci = CARDS.indexOf(c), pv = CARDS[ci - 1], nx = CARDS[ci + 1];
     var navH = '<div class="audio">' + (pv ? '<button type="button" class="btn sm" data-act="sayword" data-id="' + pv.id + '"><strong>&larr; Back</strong> <span lang="it">' + esc(pv.it) + '</span></button>' : '') + '<button type="button" class="btn sm" data-act="saylist"><strong>All words</strong></button>' + (nx ? '<button type="button" class="btn sm primary" data-act="sayword" data-id="' + nx.id + '"><strong>Next &rarr;</strong> <span lang="it">' + esc(nx.it) + '</span></button>' : '') + '</div>';
     var h2 = '<section class="panel">' + navH + '</section><section class="pagehead"><h1 lang="it">' + esc(c.it) + '</h1><p class="ph">' + phHTML(c.ph) + '</p><p class="lede">' + esc(c.en) + '</p></section>' +
-      '<section class="panel"><div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"') + btn("Slow", "slow", ' data-id="' + c.id + '"') + btn("Record me", "sayopen", ' data-id="' + c.id + '"') + "</div></section>";
+      '<section class="panel"><h2>1. Hear it</h2><p class="hint"><strong>Start here:</strong> 1 Hear it, 2 Build it from the end, 3 Echo, 4 Record me, then press Next.</p><div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"') + btn("Slow", "slow", ' data-id="' + c.id + '"') + btn("4. Record me", "sayopen", ' data-id="' + c.id + '"') + "</div></section>";
     if (n > 1) {
-      h2 += '<section class="panel"><h2>Build it from the end</h2><ul class="rows">' + steps.map(function (tx) {
+      h2 += '<section class="panel"><h2>2. Build it from the end</h2><ul class="rows">' + steps.map(function (tx) {
         return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Echo", "echo", ' data-t="' + esc(tx) + '" data-n="2"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
       }).join("") + "</ul></section>";
     }
-    h2 += '<section class="panel"><h2>Echo practice</h2><p class="hint">I say it slowly, then wait while you say it. Three times.</p><div class="audio">' + btn("Echo the whole word", "echo", ' data-t="' + esc(c.it) + '" data-n="3"', "primary") + btn("Stop", "echostop", "") + '</div><p class="tip" id="echoMsg" role="status" aria-live="polite">Ready when you are.</p><p class="hint" id="echoDiag"></p></section>';
-    h2 += '<section class="panel"><h2>Tap the beats</h2><p class="hint">Tap each piece as you say it. The bigger one is the stressed piece.</p><div class="beats" id="beats">' + sy.map(function (x, i) {
+    h2 += '<section class="panel"><h2>3. Echo practice</h2><p class="hint">I say it slowly, then wait while you say it. Three times.</p><div class="audio">' + btn("Echo the whole word", "echo", ' data-t="' + esc(c.it) + '" data-n="3"', "primary") + btn("Stop", "echostop", "") + '</div><p class="tip" id="echoMsg" role="status" aria-live="polite">Ready when you are.</p><p class="hint" id="echoDiag"></p></section>';
+    h2 += '<section class="panel"><h2>Extra: Tap the beats</h2><p class="hint">Tap each piece as you say it. The bigger one is the stressed piece.</p><div class="beats" id="beats">' + sy.map(function (x, i) {
       return '<button type="button" class="btn beat' + (i === st ? " st" : "") + '" data-act="beat" data-st="' + (i === st ? 1 : 0) + '" lang="it">' + esc(x.t) + "</button>";
     }).join("") + '</div><div class="audio">' + btn("Hear the rhythm", "rhythm", ' data-id="' + c.id + '"') + "</div></section>";
-    h2 += '<section class="panel"><h2>Body cues</h2><ul class="cues">' + cuesFor(c).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></section>";
+    h2 += '<section class="panel"><h2>Extra: Body cues</h2><ul class="cues">' + cuesFor(c).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></section>";
     h2 += '<section class="panel">' + navH + '</section>';
     h2 += '<p><button type="button" class="link" data-act="saylist">All words</button>' + (gl && gl.id === c.id ? ' &middot; <a class="link" href="#lesson">Back to the lesson</a>' : "") + ' &middot; <a class="link" href="#today">Back to Today</a></p>';
     return h2;
