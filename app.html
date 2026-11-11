@@ -1656,9 +1656,9 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
 
   /* Check my speaking pop-up */
   var sayModal = document.getElementById("sayModal");
-  var sm = { id: "", recs: {}, recKey: "", mic: "", re: function () { renderSay(); } };
+  var sm = { id: "", card: null, recs: {}, recKey: "", mic: "", re: function () { renderSay(); } };
   function renderSay() {
-    var c = BYID[sm.id]; if (!c) return;
+    var c = sm.card || BYID[sm.id]; if (!c) return;
     var on = sm.recKey === "w", has = sm.recs.w;
     sayModal.querySelector(".mbox").innerHTML =
       '<h2 id="sayTitle">Say it and hear yourself</h2>' +
@@ -1670,9 +1670,9 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       (sm.mic === "denied" ? '<p class="note">The microphone is turned off for this page. Click the lock icon in the address bar, allow the microphone, then tap Record me again.</p>' : sm.mic === "blocked" ? '<p class="note">This view does not allow the microphone. Open Piano Piano in Chrome, Edge or Safari on a computer or phone.</p>' : has ? '<p class="note">' + (S.prefs.check ? 'Your recording stays in this tab. The pronunciation check uses Chrome\u2019s speech service (Google).' : 'Your recording stays in this tab and is never uploaded.') + '</p>' : "") + fbHTML(sm, "w") +
       '<div class="row"><button type="button" class="btn ghost" data-m="close">Close</button></div>';
   }
-  function openSay(id) {
-    if (!BYID[id]) return;
-    sm.id = id; sm.recs = {}; sm.recKey = ""; sm.mic = "";
+  function openSay(id, custom) {
+    if (!custom && !BYID[id]) return;
+    sm.card = custom || null; sm.id = id; sm.recs = {}; sm.recKey = ""; sm.mic = "";
     renderSay(); sayModal.hidden = false;
   }
   function closeSay() { recStop(); sayModal.hidden = true; stopEcho(); try { speechSynthesis.cancel(); } catch (e) {} }
@@ -1685,7 +1685,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     else if (m === "recstop") recStop();
     else if (m === "recplay") recPlay("w", sm);
     else if (m === "chkon") { S.prefs.check = true; persist(); renderSay(); }
-    else if (m === "hear" && BYID[id]) speak(BYID[id].it, baseRate());
+    else if (m === "hear" && (sm.card || BYID[id])) speak((sm.card || BYID[id]).it, baseRate());
     else if (m === "word") { stopEcho(); speak(t.getAttribute("data-t"), 0.6); }
     else if (m === "whole" && BYID[id]) { stopEcho(); speak(BYID[id].it, 0.65); }
   });
@@ -1786,6 +1786,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         finishSession(true);
         break;
       case "glword": if (BYID[id]) glStart(id); break;
+      case "sayme": openSay("snd:" + t.getAttribute("data-t"), { it: t.getAttribute("data-t"), ph: t.getAttribute("data-p") || "", en: t.getAttribute("data-e") || "" }); break;
       case "listen": clearEcho(); if (BYID[id]) speak(BYID[id].it, baseRate()); break;
       case "slow": clearEcho(); if (BYID[id]) speak(BYID[id].it, 0.5); break;
       case "word": clearEcho(); speak(t.getAttribute("data-w"), 0.7); break;
@@ -2199,7 +2200,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       h += '<details class="sess"><summary><span>' + esc(sd.title) + '</span><span class="res">Practiced <b id="snd-' + sd.id + '">' + n + '</b></span></summary><div class="sbody"><p class="tip">' + esc(sd.tip) + '</p><ul class="rows">' +
         sd.words.map(function (w) {
           return '<li><span class="rit" lang="it">' + esc(w[0]) + '</span><span class="pph">' + phHTML(w[1]) + '</span><span class="ren">' + esc(w[2]) + "</span>" +
-            '<span class="pact"><button type="button" class="btn sm" data-act="say" data-t="' + esc(w[0]) + '">' + SPK_SM + ' Listen</button><button type="button" class="btn sm" data-act="sayslow" data-t="' + esc(w[0]) + '">Slow</button></span></li>';
+            '<span class="pact"><button type="button" class="btn sm" data-act="say" data-t="' + esc(w[0]) + '">' + SPK_SM + ' Listen</button><button type="button" class="btn sm" data-act="sayslow" data-t="' + esc(w[0]) + '">Slow</button><button type="button" class="btn sm" data-act="sayme" data-t="' + esc(w[0]) + '" data-p="' + esc(w[1]) + '" data-e="' + esc(w[2]) + '">Record me</button></span></li>';
         }).join("") +
         '</ul><div><button type="button" class="btn" data-act="sound" data-id="' + sd.id + '">I practiced this sound</button></div></div></details>';
     });
@@ -2359,11 +2360,12 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   function guidedStartHTML() {
     var last = S.glog && S.glog[S.glog.length - 1];
-    var opts = unlockedCards().map(function (c) { return '<option value="' + c.id + '"' + (c.id === glPickNext() ? " selected" : "") + ">" + esc(c.it) + "</option>"; }).join("");
+    var opts = SETS.map(function (st, si) { return '<optgroup label="Set ' + (si + 1) + ": " + esc(st.title) + '">' + CARDS.filter(function (c) { return c.set === si; }).map(function (c) { return '<option value="' + c.id + '"' + (c.id === glPickNext() ? " selected" : "") + ">" + esc(c.it) + "</option>"; }).join("") + "</optgroup>"; }).join("");
     return '<div class="gstart"><p class="mlabel">Guided word lesson</p><p class="hint">About 5 minutes, one word, one step at a time: meaning, listening, reading, speaking, using it.' +
       (last ? " Last lesson: " + esc(BYID[last.id] ? BYID[last.id].it : "") + "." : "") + '</p><div class="row"><label for="glWord" class="sr">Word</label><select id="glWord">' + opts + '</select><button type="button" class="btn primary" data-act="gl" data-g="start">Start the lesson</button></div></div>';
   }
   function glStart(id) {
+    if (BYID[id] && BYID[id].set + 1 > S.unlocked) { S.unlocked = Math.min(SETS.length, BYID[id].set + 1); persist(); }
     var h = (S.glog || []).filter(function (x) { return x.id === id; });
     var spell = S.prefs.glSpell || h.some(function (x) { return x.troubles && x.troubles.indexOf("hear") >= 0; });
     var w = glWarm(id);
@@ -2453,7 +2455,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     for (i = 1; i <= a.length; i++) { var prev = p[0]; p[0] = i; for (j = 1; j <= b.length; j++) { var tmp = p[j]; p[j] = Math.min(p[j] + 1, p[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = tmp; } }
     return p[b.length];
   }
-  function chkCard(h) { return h === sm ? BYID[sm.id] : (gl ? BYID[gl.id] : null); }
+  function chkCard(h) { return h === sm ? (sm.card || BYID[sm.id]) : (gl ? BYID[gl.id] : null); }
   function chkStart(h, key, again) {
     if (!S.prefs.check || !SR || (key !== "w" && key !== "word") || !chkCard(h)) return;
     h.fb = null; h.fbBusy = true;
