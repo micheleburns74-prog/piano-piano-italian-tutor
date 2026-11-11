@@ -783,6 +783,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     d.glog = Array.isArray(o.glog) ? o.glog.slice(-40) : [];
     d.stages = (o.stages && typeof o.stages === "object") ? o.stages : {};
     d.readStats = (o.readStats && typeof o.readStats === "object") ? o.readStats : { n: 0, ok: 0 };
+    d.say = (o.say && typeof o.say === "object") ? o.say : {};
+    d.hard = (o.hard && typeof o.hard === "object") ? o.hard : {};
     d.favs = (o.favs && typeof o.favs === "object") ? o.favs : {};
     if (o.weekSnd && typeof o.weekSnd === "object") d.weekSnd = o.weekSnd;
     if (!o.contentV && (Object.keys(d.cards).length || d.sessions.length)) d.unlocked = Math.min(SETS.length, d.unlocked + 1);
@@ -1342,13 +1344,104 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       }, i * 700);
     });
   }
+  var pzStep = 0, sayView = "";
+  var PZ_STEPS = ["Hear it", "Build it from the end", "Echo", "Record and compare", "Feel the sounds", "How did it go?"];
+  function soundKeys(c) {
+    var l = c.it.toLowerCase().replace(/[^a-zà-ÿ]/g, ""), k = [];
+    if (/gli/.test(l)) k.push("gli");
+    if (/gn/.test(l)) k.push("gn");
+    if (/([bcdfglmnprstvz])\1/.test(l)) k.push("dbl");
+    if (/r/.test(l)) k.push("r");
+    if (/c[ie]/.test(l)) k.push("ce");
+    if (/g[ie]/.test(l)) k.push("ge");
+    if (/ch|gh/.test(l)) k.push("ch");
+    if (/sc[ie]/.test(l)) k.push("sc");
+    if (/z/.test(l)) k.push("z");
+    return k;
+  }
+  var SND_INFO = {
+    gli: ["GLI", "Say it like the middle of the word million."],
+    gn: ["GN", "Say it like the NY in canyon."],
+    dbl: ["Double letters", "Hold the sound one beat longer. Tap your finger once on the table while you hold it."],
+    r: ["The Italian R", "Tap the tip of your tongue once, just behind your top teeth. A soft R is fine."],
+    ce: ["C before I or E", "It sounds like CH, as in chair."],
+    ge: ["G before I or E", "It sounds like J, as in jam."],
+    ch: ["CH and GH", "These make a hard K or G: che sounds like kay, ghi sounds like ghee."],
+    sc: ["SC before I or E", "It sounds like SH, as in shell."],
+    z: ["Z", "Buzz it like DZ or TS. Put your hand on your throat to feel the buzz."]
+  };
+  function idbOpen(cb) {
+    try {
+      var q = indexedDB.open("pp-rec", 1);
+      q.onupgradeneeded = function () { q.result.createObjectStore("r"); };
+      q.onsuccess = function () { cb(q.result); };
+      q.onerror = function () { cb(null); };
+    } catch (e) { cb(null); }
+  }
+  function recKeep(id, blob) {
+    idbOpen(function (db) {
+      if (!db) return;
+      try {
+        var st = db.transaction("r", "readwrite").objectStore("r"), g = st.get(id + ":first");
+        g.onsuccess = function () { if (!g.result) st.put(blob, id + ":first"); st.put(blob, id + ":last"); };
+      } catch (e) {}
+    });
+  }
+  function recPlayKept(id, which) {
+    idbOpen(function (db) {
+      if (!db) { toast("Saved recordings are not available here."); return; }
+      try {
+        var g = db.transaction("r").objectStore("r").get(id + ":" + which);
+        g.onsuccess = function () {
+          if (!g.result) { toast("No saved recording yet. Press Record me first."); return; }
+          try { window.speechSynthesis.cancel(); } catch (e) {}
+          try { new Audio(URL.createObjectURL(g.result)).play(); } catch (e) { toast("Could not play it."); }
+        };
+      } catch (e) {}
+    });
+  }
+  function sayFinish(id, v) {
+    sayInit();
+    var c = BYID[id], t = dayKey(), r = S.say[id] || (S.say[id] = { n: 0, due: t, hard: false });
+    r.n++; r.last = t;
+    if (v === "hard") {
+      r.hard = true; r.due = addDays(t, 1);
+      soundKeys(c).forEach(function (k) { S.hard[k] = (S.hard[k] || 0) + 1; });
+    } else {
+      r.hard = false; r.due = addDays(t, r.n >= 3 ? 7 : 3);
+    }
+    persist();
+  }
+  function sayHardHTML() {
+    sayInit();
+    var keys = Object.keys(S.hard).filter(function (k) { return S.hard[k] > 0 && SND_INFO[k]; }).sort(function (a, b) { return S.hard[b] - S.hard[a]; });
+    var h = '<section class="pagehead"><h1>My hard sounds</h1><p class="lede">Sounds from the words you marked as needing more practice.</p></section>';
+    if (!keys.length) h += '<section class="panel"><p class="lede">Nothing here yet. When you finish a word, choose "Needs more practice" and its tricky sounds will show up here.</p></section>';
+    keys.forEach(function (k) {
+      var words = CARDS.filter(function (c) { return S.say[c.id] && S.say[c.id].hard && soundKeys(c).indexOf(k) >= 0; });
+      h += '<section class="panel"><h2>' + esc(SND_INFO[k][0]) + '</h2><p class="lede">' + esc(SND_INFO[k][1]) + '</p><ul class="rows">' + words.map(function (c) {
+        return '<li><span class="rit" lang="it">' + esc(c.it) + '</span><span class="ren">' + esc(c.en) + '</span><span class="pact"><button type="button" class="btn sm primary" data-act="sayword" data-id="' + c.id + '">Practice</button></span></li>';
+      }).join("") + "</ul></section>";
+    });
+    return h + '<section class="panel"><div class="audio"><button type="button" class="btn sm" data-act="saylist"><strong>All words</strong></button></div></section>';
+  }
+  function sayInit() { if (!S.say || typeof S.say !== "object") S.say = {}; if (!S.hard || typeof S.hard !== "object") S.hard = {}; }
   function sayHTML() {
+    sayInit();
     var c = sayId && BYID[sayId];
+    if (!c && sayView === "hard") return sayHardHTML();
     if (!c) {
+      var t0 = dayKey();
+      var due = CARDS.filter(function (x) { var r = S.say[x.id]; return r && r.due <= t0; });
       var h = '<section class="pagehead"><h1>Pronounce a word</h1><p class="lede">Pick a word to practice saying out loud.</p></section>';
+      if (Object.keys(S.hard).some(function (k) { return S.hard[k] > 0; })) h += '<section class="panel"><div class="audio"><button type="button" class="btn sm primary" data-act="sayhard"><strong>My hard sounds</strong></button></div></section>';
+      if (due.length) h += '<section class="panel"><h2>Practice again today</h2><ul class="rows">' + due.map(function (x) {
+        return '<li><span class="rit" lang="it">' + esc(x.it) + '</span><span class="ren">' + esc(x.en) + '</span><span class="pact"><button type="button" class="btn sm primary" data-act="sayword" data-id="' + x.id + '">Practice</button></span></li>';
+      }).join("") + "</ul></section>";
       SETS.forEach(function (st, si) {
         h += '<section class="panel"><h2>Set ' + (si + 1) + ": " + esc(st.title) + '</h2><ul class="rows">' + CARDS.filter(function (x) { return x.set === si; }).map(function (x) {
-          return '<li><span class="rit" lang="it">' + esc(x.it) + '</span><span class="ren">' + esc(x.en) + '</span><span class="pact"><button type="button" class="btn sm primary" data-act="sayword" data-id="' + x.id + '">Practice saying</button></span></li>';
+          var r = S.say[x.id];
+          return '<li><span class="rit" lang="it">' + esc(x.it) + (r ? ' <span class="ren">&#10003; ' + r.n + 'x</span>' : "") + '</span><span class="ren">' + esc(x.en) + '</span><span class="pact"><button type="button" class="btn sm primary" data-act="sayword" data-id="' + x.id + '">Practice saying</button></span></li>';
         }).join("") + "</ul></section>";
       });
       return h;
@@ -1358,19 +1451,28 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var btn = function (label, act, data, cls) { return '<button type="button" class="btn sm ' + (cls || "") + '" data-act="' + act + '"' + data + ">" + label + "</button>"; };
     var ci = CARDS.indexOf(c), pv = CARDS[ci - 1], nx = CARDS[ci + 1];
     var navH = '<div class="audio">' + (pv ? '<button type="button" class="btn sm" data-act="sayword" data-id="' + pv.id + '"><strong>&larr; Back</strong> <span lang="it">' + esc(pv.it) + '</span></button>' : '') + '<button type="button" class="btn sm" data-act="saylist"><strong>All words</strong></button>' + (nx ? '<button type="button" class="btn sm primary" data-act="sayword" data-id="' + nx.id + '"><strong>Next &rarr;</strong> <span lang="it">' + esc(nx.it) + '</span></button>' : '') + '</div>';
-    var h2 = '<section class="panel">' + navH + '</section><section class="pagehead"><h1 lang="it">' + esc(c.it) + '</h1><p class="ph">' + phHTML(c.ph) + '</p><p class="lede">' + esc(c.en) + '</p></section>' +
-      '<section class="panel"><h2>1. Hear it</h2><p class="hint"><strong>Start here:</strong> 1 Hear it, 2 Build it from the end, 3 Echo, 4 Record me, then press Next.</p><div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"') + btn("Slow", "slow", ' data-id="' + c.id + '"') + btn("4. Record me", "sayopen", ' data-id="' + c.id + '"') + "</div></section>";
-    if (n > 1) {
-      h2 += '<section class="panel"><h2>2. Build it from the end</h2><ul class="rows">' + steps.map(function (tx) {
+    var s = Math.max(0, Math.min(PZ_STEPS.length - 1, pzStep));
+    var h2 = '<section class="panel">' + navH + '</section><section class="pagehead"><h1 lang="it">' + esc(c.it) + '</h1><p class="ph">' + phHTML(c.ph) + '</p><p class="lede">' + esc(c.en) + '</p></section>';
+    h2 += '<section class="panel"><h2>Step ' + (s + 1) + " of " + PZ_STEPS.length + ": " + esc(PZ_STEPS[s]) + "</h2>";
+    if (s === 0) {
+      h2 += '<div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"', "primary") + btn("Slow", "slow", ' data-id="' + c.id + '"') + '</div><p><a class="link" href="https://forvo.com/search/' + encodeURIComponent(c.it) + '/it/" target="_blank" rel="noopener">Hear a native speaker (opens Forvo)</a></p>';
+    } else if (s === 1) {
+      if (n > 1) h2 += '<ul class="rows">' + steps.map(function (tx) {
         return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Echo", "echo", ' data-t="' + esc(tx) + '" data-n="2"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
-      }).join("") + "</ul></section>";
+      }).join("") + "</ul>";
+      else h2 += '<p class="lede">This word is short. Go to the next step.</p>';
+    } else if (s === 2) {
+      h2 += '<p class="hint">I say it slowly, then wait while you say it. Three times.</p><div class="audio">' + btn("Echo the whole word", "echo", ' data-t="' + esc(c.it) + '" data-n="3"', "primary") + btn("Stop", "echostop", "") + '</div><p class="tip" id="echoMsg" role="status" aria-live="polite">Ready when you are.</p><p class="hint" id="echoDiag"></p>';
+    } else if (s === 3) {
+      h2 += '<div class="audio">' + btn("Record me", "sayopen", ' data-id="' + c.id + '"', "primary") + btn("My first recording", "playfirst", ' data-id="' + c.id + '"') + btn("My latest recording", "playlast", ' data-id="' + c.id + '"') + '</div><p class="hint">Record yourself, then use "Model, then me" to compare. Your first and latest recordings stay on this device so you can hear your progress.</p>';
+    } else if (s === 4) {
+      h2 += '<div class="beats" id="beats">' + sy.map(function (x, i) {
+        return '<button type="button" class="btn beat' + (i === st ? " st" : "") + '" data-act="beat" data-st="' + (i === st ? 1 : 0) + '" lang="it">' + esc(x.t) + "</button>";
+      }).join("") + '</div><div class="audio">' + btn("Hear the rhythm", "rhythm", ' data-id="' + c.id + '"') + '</div><ul class="cues">' + cuesFor(c).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
+    } else {
+      h2 += '<div class="audio">' + btn("<strong>Easy</strong>", "sayfinish", ' data-id="' + c.id + '" data-v="easy"', "primary") + btn("<strong>Needs more practice</strong>", "sayfinish", ' data-id="' + c.id + '" data-v="hard"') + '</div><p class="hint">I will bring the word back for review, sooner if it needs more practice.</p>';
     }
-    h2 += '<section class="panel"><h2>3. Echo practice</h2><p class="hint">I say it slowly, then wait while you say it. Three times.</p><div class="audio">' + btn("Echo the whole word", "echo", ' data-t="' + esc(c.it) + '" data-n="3"', "primary") + btn("Stop", "echostop", "") + '</div><p class="tip" id="echoMsg" role="status" aria-live="polite">Ready when you are.</p><p class="hint" id="echoDiag"></p></section>';
-    h2 += '<section class="panel"><h2>Extra: Tap the beats</h2><p class="hint">Tap each piece as you say it. The bigger one is the stressed piece.</p><div class="beats" id="beats">' + sy.map(function (x, i) {
-      return '<button type="button" class="btn beat' + (i === st ? " st" : "") + '" data-act="beat" data-st="' + (i === st ? 1 : 0) + '" lang="it">' + esc(x.t) + "</button>";
-    }).join("") + '</div><div class="audio">' + btn("Hear the rhythm", "rhythm", ' data-id="' + c.id + '"') + "</div></section>";
-    h2 += '<section class="panel"><h2>Extra: Body cues</h2><ul class="cues">' + cuesFor(c).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></section>";
-    h2 += '<section class="panel">' + navH + '</section>';
+    h2 += '<div class="audio">' + (s > 0 ? btn("<strong>&larr; Back</strong>", "saystep", ' data-d="-1"') : "") + (s < PZ_STEPS.length - 1 ? btn("<strong>Next step &rarr;</strong>", "saystep", ' data-d="1"', "primary") : "") + "</div></section>";
     h2 += '<p><button type="button" class="link" data-act="saylist">All words</button>' + (gl && gl.id === c.id ? ' &middot; <a class="link" href="#lesson">Back to the lesson</a>' : "") + ' &middot; <a class="link" href="#today">Back to Today</a></p>';
     return h2;
   }
@@ -1951,8 +2053,13 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       case "glword": if (BYID[id]) glStart(id); break;
       case "sayme": openSay("snd:" + t.getAttribute("data-t"), { it: t.getAttribute("data-t"), ph: t.getAttribute("data-p") || "", en: t.getAttribute("data-e") || "" }); break;
       case "resumesess": showHome = false; render(); break;
-      case "sayword": echoTok++; sayId = t.getAttribute("data-id"); if (view === "say") { render(); window.scrollTo(0, 0); } else window.location.hash = "#say"; break;
-      case "saylist": sayId = ""; echoTok++; render(); break;
+      case "saystep": echoTok++; echoStopSR(); pzStep = Math.max(0, Math.min(PZ_STEPS.length - 1, pzStep + Number(t.getAttribute("data-d")))); render(); window.scrollTo(0, 0); break;
+      case "sayhard": sayView = "hard"; sayId = ""; render(); window.scrollTo(0, 0); break;
+      case "playfirst": recPlayKept(id, "first"); break;
+      case "playlast": recPlayKept(id, "last"); break;
+      case "sayfinish": echoTok++; echoStopSR(); sayFinish(id, t.getAttribute("data-v")); pzStep = 0; (function () { var nx = CARDS[CARDS.indexOf(BYID[id]) + 1]; sayId = nx ? nx.id : ""; sayView = ""; toast(t.getAttribute("data-v") === "hard" ? "Saved. I will bring it back tomorrow." : "Saved. Nice work."); render(); window.scrollTo(0, 0); })(); break;
+      case "sayword": echoTok++; pzStep = 0; sayView = ""; sayId = t.getAttribute("data-id"); if (view === "say") { render(); window.scrollTo(0, 0); } else window.location.hash = "#say"; break;
+      case "saylist": pzStep = 0; sayView = ""; sayId = ""; echoTok++; render(); break;
       case "speakslow": speak(t.getAttribute("data-t"), 0.55); break;
       case "echo": if (t.getAttribute("data-t")) echoDrill(t.getAttribute("data-t"), Number(t.getAttribute("data-n")) || 2); else if (BYID[id]) runEcho(id); break;
       case "echostop": echoTok++; echoStopSR(); echoNote("Stopped."); break;
@@ -2627,7 +2734,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
         var blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
         if (h.recs[key] && h.recs[key].url) { try { URL.revokeObjectURL(h.recs[key].url); } catch (e) {} }
-        h.recs[key] = { url: URL.createObjectURL(blob) }; h.recKey = ""; h.mic = "ok"; again();
+        h.recs[key] = { url: URL.createObjectURL(blob) }; try { if (h === sm && key === "w" && sm.id && BYID[sm.id] && !(sm.card && sm.card.noCheck)) recKeep(sm.id, blob); } catch (e) {} h.recKey = ""; h.mic = "ok"; again();
       };
       recState.rec = mr; h.recKey = key; h.mic = "ok"; mr.start(); chkStart(h, key, again); again();
       recState.timer = setTimeout(recStop, 8000);
