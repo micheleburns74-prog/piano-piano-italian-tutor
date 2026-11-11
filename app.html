@@ -1270,30 +1270,41 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return out.slice(0, 5);
   }
   function echoNote(m) { var el = document.getElementById("echoMsg"); if (el) el.textContent = m; }
-  var echoErr = "";
-  function echoListen(text, tok, done) {
-    var win = Math.max(5500, text.length * 700), t0 = Date.now(), got = null, cur = null, fin = false, lastErr = ""; echoErr = "";
-    function end() { if (fin) return; fin = true; try { cur && cur.abort(); } catch (e) {} done(got); }
-    if (!SR || location.protocol === "file:" || !S.prefs.check) { setTimeout(function () { fin = true; done(undefined); }, win); return; }
-    setTimeout(end, win);
+  var echoErr = "", echoSR = null, echoGate = null;
+  function echoStopSR() { var r = echoSR; echoSR = null; echoGate = null; try { r && r.abort(); } catch (e) {} }
+  function echoOpenSR(tok) {
+    if (!SR || location.protocol === "file:" || !S.prefs.check) return false;
     (function one() {
-      if (fin || tok !== echoTok) return;
+      if (tok !== echoTok) return;
       var r; try { r = new SR(); } catch (e) { return; }
-      cur = r; r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = false;
+      echoSR = r; r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = true;
       r.onresult = function (e) {
-        var a = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) a.push(e.results[i][j].transcript);
-        if (a.length && a[0]) { got = a; end(); }
+        if (!echoGate || echoSR !== r) return;
+        var res = e.results[e.results.length - 1], a = [];
+        for (var j = 0; j < res.length; j++) a.push(res[j].transcript);
+        if (a.length && a[0]) echoGate(a);
       };
-      r.onend = function () { if (cur === r && !fin && !got && Date.now() - t0 < win - 600) setTimeout(one, lastErr && lastErr !== "no-speech" ? 500 : 80); };
-      r.onerror = function (e) { if (cur === r) { lastErr = (e && e.error) || "error"; if (lastErr !== "no-speech" && lastErr !== "aborted") echoErr = lastErr; } };
-      try { r.start(); } catch (e) { lastErr = "start"; echoErr = "start"; setTimeout(one, 500); }
+      r.onerror = function (e) { var er = (e && e.error) || "error"; if (er !== "no-speech" && er !== "aborted") echoErr = er; };
+      r.onend = function () { if (echoSR === r && tok === echoTok) setTimeout(one, echoErr ? 600 : 150); };
+      try { r.start(); } catch (e) { echoErr = "start"; setTimeout(one, 600); }
     })();
+    return true;
+  }
+  function echoListen(text, tok, done) {
+    var win = Math.max(5500, text.length * 700), fin = false, tm;
+    if (!echoSR) { setTimeout(function () { done(undefined); }, win); return; }
+    function end(v) { if (fin) return; fin = true; clearTimeout(tm); echoGate = null; done(v); }
+    echoErr = "";
+    echoGate = function (a) { end(a); };
+    tm = setTimeout(function () { end(null); }, win);
   }
   function echoDrill(text, cnt) {
+    echoStopSR();
     var tok = ++echoTok, n = 0;
+    echoOpenSR(tok);
     (function round() {
       if (tok !== echoTok) return;
-      if (n >= cnt) { echoNote("Done. Well done."); return; }
+      if (n >= cnt) { echoNote("Done. Well done."); echoStopSR(); return; }
       n++; echoNote("Listen (" + n + " of " + cnt + ")");
       speak(text, 0.55, function () {
         if (tok !== echoTok) return;
@@ -1308,7 +1319,6 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
             alts.forEach(function (a) { var d = lev(nrm(a).replace(/ /g, ""), t); if (d < bd) { bd = d; raw = a; } });
             var ok = bd === 0 || (t.length > 5 && bd <= 1);
             echoNote(ok ? "I heard: " + raw + ". That sounded right." : "I heard: " + raw + ". Listen again and try once more.");
-            if (n >= cnt) return;
             setTimeout(round, 1800);
           });
         }, 900);
@@ -1936,7 +1946,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       case "saylist": sayId = ""; echoTok++; render(); break;
       case "speakslow": speak(t.getAttribute("data-t"), 0.55); break;
       case "echo": if (t.getAttribute("data-t")) echoDrill(t.getAttribute("data-t"), Number(t.getAttribute("data-n")) || 2); else if (BYID[id]) runEcho(id); break;
-      case "echostop": echoTok++; echoNote("Stopped."); break;
+      case "echostop": echoTok++; echoStopSR(); echoNote("Stopped."); break;
       case "beat": beep(t.getAttribute("data-st") === "1" ? 520 : 330, t.getAttribute("data-st") === "1" ? 0.28 : 0.14, t.getAttribute("data-st") === "1" ? 0.35 : 0.14); break;
       case "rhythm": if (BYID[t.getAttribute("data-id")]) rhythmRun(BYID[t.getAttribute("data-id")]); break;
       case "sayform": openSay("frm:" + t.getAttribute("data-t"), { it: t.getAttribute("data-t"), ph: "", en: "", noCheck: true }); break;
