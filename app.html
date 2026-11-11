@@ -1270,41 +1270,44 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return out.slice(0, 5);
   }
   function echoNote(m) { var el = document.getElementById("echoMsg"); if (el) el.textContent = m; }
-  var echoErr = "", echoSR = null, echoGate = null;
-  function echoStopSR() { var r = echoSR; echoSR = null; echoGate = null; try { r && r.abort(); } catch (e) {} }
-  function echoOpenSR(tok) {
-    if (!SR || location.protocol === "file:" || !S.prefs.check) return false;
-    (function one() {
-      if (tok !== echoTok) return;
-      var r; try { r = new SR(); } catch (e) { return; }
-      echoSR = r; r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = true;
-      r.onresult = function (e) {
-        if (!echoGate || echoSR !== r) return;
-        var res = e.results[e.results.length - 1], a = [];
-        for (var j = 0; j < res.length; j++) a.push(res[j].transcript);
-        if (a.length && a[0]) echoGate(a);
-      };
-      r.onerror = function (e) { var er = (e && e.error) || "error"; if (er !== "no-speech" && er !== "aborted") echoErr = er; };
-      r.onend = function () { if (echoSR === r && tok === echoTok) setTimeout(one, echoErr ? 600 : 150); };
-      try { r.start(); } catch (e) { echoErr = "start"; setTimeout(one, 600); }
-    })();
-    return true;
+  var echoErr = "", echoSR = null, echoLog = [];
+  function echoDiag(m) { echoLog.push(m); if (echoLog.length > 8) echoLog.shift(); var el = document.getElementById("echoDiag"); if (el) el.textContent = "Mic log: " + echoLog.join(", "); }
+  function echoStopSR(after) {
+    var r = echoSR; echoSR = null;
+    if (!r) { if (after) after(); return; }
+    var done = false; function go() { if (done) return; done = true; if (after) after(); }
+    r.onend = go; r.onerror = function () {}; r.onresult = function () {};
+    try { r.abort(); } catch (e) {}
+    setTimeout(go, 700);
   }
   function echoListen(text, tok, done) {
-    var win = Math.max(5500, text.length * 700), fin = false, tm;
-    if (!echoSR) { setTimeout(function () { done(undefined); }, win); return; }
-    function end(v) { if (fin) return; fin = true; clearTimeout(tm); echoGate = null; done(v); }
+    var win = Math.max(6000, text.length * 700), fin = false, tm, t0 = Date.now(), n = 0;
+    if (!SR || location.protocol === "file:" || !S.prefs.check) { setTimeout(function () { done(undefined); }, win); return; }
     echoErr = "";
-    echoGate = function (a) { end(a); };
+    function end(v) { if (fin) return; fin = true; clearTimeout(tm); echoStopSR(function () { if (tok === echoTok) done(v); }); }
     tm = setTimeout(function () { end(null); }, win);
+    (function one() {
+      if (fin || tok !== echoTok) return;
+      var r; try { r = new SR(); } catch (e) { echoDiag("no recognizer"); return; }
+      echoSR = r; r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = true;
+      r.onstart = function () { echoDiag("listening"); };
+      r.onresult = function (e) {
+        if (echoSR !== r) return;
+        var res = e.results[e.results.length - 1], a = [];
+        for (var j = 0; j < res.length; j++) a.push(res[j].transcript);
+        echoDiag("heard"); if (a.length && a[0]) end(a);
+      };
+      r.onerror = function (e) { var er = (e && e.error) || "error"; echoDiag(er); if (er !== "no-speech" && er !== "aborted") echoErr = er; };
+      r.onend = function () { if (echoSR === r && !fin && Date.now() - t0 < win - 800) { n++; echoSR = null; setTimeout(one, echoErr ? 600 : 200); } };
+      try { r.start(); } catch (e) { echoDiag("start failed"); echoErr = "start"; echoSR = null; setTimeout(one, 600); }
+    })();
   }
   function echoDrill(text, cnt) {
-    echoStopSR();
     var tok = ++echoTok, n = 0;
-    echoOpenSR(tok);
+    echoStopSR(function () {
     (function round() {
       if (tok !== echoTok) return;
-      if (n >= cnt) { echoNote("Done. Well done."); echoStopSR(); return; }
+      if (n >= cnt) { echoNote("Done. Well done."); return; }
       n++; echoNote("Listen (" + n + " of " + cnt + ")");
       speak(text, 0.55, function () {
         if (tok !== echoTok) return;
@@ -1324,6 +1327,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         }, 900);
       });
     })();
+    });
   }
   function rhythmRun(c) {
     var sy = glSyl(c), st = stressIdx(c), tok = ++rhythmTok;
@@ -1357,7 +1361,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Echo", "echo", ' data-t="' + esc(tx) + '" data-n="2"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
       }).join("") + "</ul></section>";
     }
-    h2 += '<section class="panel"><h2>Echo practice</h2><p class="hint">I say it slowly, then wait while you say it. Three times.</p><div class="audio">' + btn("Echo the whole word", "echo", ' data-t="' + esc(c.it) + '" data-n="3"', "primary") + btn("Stop", "echostop", "") + '</div><p class="tip" id="echoMsg" role="status" aria-live="polite">Ready when you are.</p></section>';
+    h2 += '<section class="panel"><h2>Echo practice</h2><p class="hint">I say it slowly, then wait while you say it. Three times.</p><div class="audio">' + btn("Echo the whole word", "echo", ' data-t="' + esc(c.it) + '" data-n="3"', "primary") + btn("Stop", "echostop", "") + '</div><p class="tip" id="echoMsg" role="status" aria-live="polite">Ready when you are.</p><p class="hint" id="echoDiag"></p></section>';
     h2 += '<section class="panel"><h2>Tap the beats</h2><p class="hint">Tap each piece as you say it. The bigger one is the stressed piece.</p><div class="beats" id="beats">' + sy.map(function (x, i) {
       return '<button type="button" class="btn beat' + (i === st ? " st" : "") + '" data-act="beat" data-st="' + (i === st ? 1 : 0) + '" lang="it">' + esc(x.t) + "</button>";
     }).join("") + '</div><div class="audio">' + btn("Hear the rhythm", "rhythm", ' data-id="' + c.id + '"') + "</div></section>";
