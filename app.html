@@ -1469,20 +1469,29 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return h + '<section class="panel"><div class="audio"><button type="button" class="btn sm" data-act="saylist"><strong>All words</strong></button></div></section>';
   }
   var RD_ITEMS = [
-    ["Bagno", "Bathroom", "signs"], ["Uomini", "Men", "signs"], ["Donne", "Women", "signs"], ["Signori", "Men (formal)", "signs"], ["Signore", "Women (formal)", "signs"],
+    ["Bagno", "Bathroom", "start"], ["Uomini", "Men", "signs"], ["Donne", "Women", "signs"], ["Signori", "Men (formal)", "signs"], ["Signore", "Women (formal)", "signs"],
     ["Entrata", "Entrance", "signs"], ["Uscita", "Exit", "signs"], ["Spingere", "Push", "signs"], ["Tirare", "Pull", "signs"], ["Aperto", "Open", "signs"],
     ["Chiuso", "Closed", "signs"], ["Vietato", "Forbidden", "signs"], ["Attenzione", "Caution", "signs"], ["Pericolo", "Danger", "signs"], ["Biglietti", "Tickets", "signs"],
     ["Farmacia", "Pharmacy", "signs"], ["Ospedale", "Hospital", "signs"], ["Stazione", "Station", "signs"], ["Fermata", "Bus stop", "signs"], ["Libero", "Free, vacant", "signs"], ["Occupato", "Occupied", "signs"],
     ["Antipasti", "Starters", "menu"], ["Primi", "First courses (pasta, soup)", "menu"], ["Secondi", "Main courses (meat, fish)", "menu"], ["Contorni", "Side dishes", "menu"], ["Dolci", "Desserts", "menu"],
-    ["Bevande", "Drinks", "menu"], ["Acqua", "Water", "menu"], ["Vino", "Wine", "menu"], ["Birra", "Beer", "menu"], ["Caffè", "Coffee", "menu"],
-    ["Pane", "Bread", "menu"], ["Coperto", "Cover charge", "menu"], ["Il conto", "The bill", "menu"], ["Pollo", "Chicken", "menu"], ["Carne", "Meat", "menu"],
-    ["Pesce", "Fish", "menu"], ["Formaggio", "Cheese", "menu"], ["Insalata", "Salad", "menu"], ["Zuppa", "Soup", "menu"], ["Gelato", "Ice cream", "menu"]
+    ["Bevande", "Drinks", "menu"], ["Acqua", "Water", "start"], ["Vino bianco", "White wine", "start"], ["Vino rosso", "Red wine", "start"], ["Birra", "Beer", "menu"], ["Caffè", "Coffee", "menu"],
+    ["Pane", "Bread", "start"], ["Coperto", "Cover charge", "menu"], ["Il conto", "The bill", "menu"], ["Pollo", "Chicken", "start"], ["Carne", "Meat", "start"],
+    ["Pesce", "Fish", "start"], ["Formaggio", "Cheese", "menu"], ["Insalata", "Salad", "menu"], ["Zuppa", "Soup", "menu"], ["Gelato", "Ice cream", "menu"]
   ];
-  var rdState = { kind: "", q: [], cur: null, picked: -1, opts: [], first: 0, total: 0, missed: {}, done: false };
+  function rdDue(w) { var r = S.readDue && S.readDue[w]; return !r || r <= dayKey(); }
+  function rdDueCount() { return RD_ITEMS.filter(function (x) { return rdDue(x[0]); }).length; }
+  function rdGrade(w, how) {
+    if (!S.readDue || typeof S.readDue !== "object") S.readDue = {};
+    var t = dayKey(), steps = [1, 3, 7, 14, 30], cur = S.read[w] || 0;
+    if (how === "first") { if (rdDue(w)) { cur = cur + 1; S.read[w] = cur; S.readDue[w] = addDays(t, steps[Math.min(cur - 1, steps.length - 1)]); } }
+    else if (how === "second") { S.readDue[w] = addDays(t, 1); }
+    else { S.read[w] = 0; S.readDue[w] = addDays(t, 1); }
+  }
+  var rdState = { kind: "", q: [], cur: null, picked: -1, wrong: [], opts: [], first: 0, total: 0, missed: {}, done: false };
   function rdNext() {
     var st = rdState;
     if (!st.q.length) { st.cur = null; st.done = true; return; }
-    var it = st.q.shift(); st.cur = it; st.picked = -1;
+    var it = st.q.shift(); st.cur = it; st.picked = -1; st.wrong = [];
     var pool = RD_ITEMS.filter(function (x) { return x[2] === it[2] && x[0] !== it[0]; });
     st.opts = shuffle(shuffle(pool.slice()).slice(0, 2).concat([it]));
   }
@@ -1491,25 +1500,30 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var st = rdState;
     var h = '<section class="pagehead"><h1>Read signs and menus</h1></section>';
     if (!st.kind) {
-      [["signs", "Signs", "Bathroom, exit, push, pull, open, closed"], ["menu", "Restaurant menus", "Starters, mains, drinks, the bill"]].forEach(function (k) {
+      [["start", "Start here", "Bathroom, fish, meat, chicken, white wine, red wine"], ["signs", "Signs", "Exit, push, pull, open, closed"], ["menu", "Restaurant menus", "Starters, mains, drinks, the bill"]].forEach(function (k) {
         var all = RD_ITEMS.filter(function (x) { return x[2] === k[0]; }), known = all.filter(function (x) { return (S.read[x[0]] || 0) >= 2; }).length;
-        h += '<section class="panel"><h2>' + k[1] + '</h2><p class="tip">' + k[2] + '. You know ' + known + ' of ' + all.length + '.</p><div class="audio"><button type="button" class="btn sm primary" data-act="rdstart" data-k="' + k[0] + '"><strong>Start</strong></button></div></section>';
+        h += '<section class="panel"><h2>' + k[1] + '</h2><p class="tip">' + k[2] + '. You know ' + known + ' of ' + all.length + '. ' + (all.filter(function (x) { return rdDue(x[0]); }).length ? all.filter(function (x) { return rdDue(x[0]); }).length + ' to practice today.' : 'Done for today. Come back tomorrow.') + '</p><div class="audio"><button type="button" class="btn sm primary" data-act="rdstart" data-k="' + k[0] + '"><strong>Start</strong></button></div></section>';
       });
       return h;
     }
-    if (st.done) {
-      return h + '<section class="panel"><h2>Round done</h2><p class="tip">You got ' + st.first + ' of ' + st.total + ' right the first time.</p><div class="audio"><button type="button" class="btn sm primary" data-act="rdstart" data-k="' + st.kind + '"><strong>Another round</strong></button><button type="button" class="btn sm" data-act="rdlist"><strong>All lists</strong></button></div></section>';
+    if (st.done && st.none) {
+      return h + '<section class="panel"><h2>All done for today</h2><p class="tip">You have practiced every word that was due. They come back on other days, so they stick. Rest now, and come back tomorrow.</p><div class="audio"><button type="button" class="btn sm" data-act="rdstart" data-k="' + st.kind + '" data-any="1"><strong>Practice anyway</strong></button><button type="button" class="btn sm" data-act="rdlist"><strong>All lists</strong></button></div></section>';
     }
-    var c = st.cur, ans = st.picked >= 0;
+    if (st.done) {
+      return h + '<section class="panel"><h2>Round done</h2><p class="tip">You got ' + st.first + ' of ' + st.total + ' right the first time. These words will come back on other days to practice again.</p><div class="audio"><button type="button" class="btn sm primary" data-act="rdstart" data-k="' + st.kind + '"><strong>More words</strong></button><button type="button" class="btn sm" data-act="rdlist"><strong>All lists</strong></button></div></section>';
+    }
+    var c = st.cur, ans = st.picked >= 0, tried = st.wrong.length;
     h += '<section class="panel"><div class="rdsign" lang="it">' + esc(c[0]) + '</div><div class="audio"><button type="button" class="btn sm" data-act="rdhear">' + SPK_SM + ' Hear it</button></div><p class="tip">What does it mean?</p><div class="rdopts">';
     st.opts.forEach(function (o, i) {
-      var cls = "btn rdopt" + (ans ? (o[0] === c[0] ? " rdok" : (i === st.picked ? " rdbad" : "")) : "");
-      h += '<button type="button" class="' + cls + '" data-act="rdans" data-i="' + i + '"' + (ans ? " disabled" : "") + '>' + esc(o[1]) + "</button>";
+      var wr = st.wrong.indexOf(i) >= 0;
+      var cls = "btn rdopt" + (ans ? (o[0] === c[0] ? " rdok" : (wr || i === st.picked ? " rdbad" : "")) : (wr ? " rdbad" : ""));
+      h += '<button type="button" class="' + cls + '" data-act="rdans" data-i="' + i + '"' + (ans || wr ? " disabled" : "") + '>' + esc(o[1]) + "</button>";
     });
     h += "</div>";
+    if (!ans && tried) h += '<p class="tip" role="status">Not quite. Try once more.</p>';
     if (ans) {
       var good = st.opts[st.picked][0] === c[0];
-      h += '<p class="tip" role="status">' + (good ? "Yes. " : "Not quite. ") + esc(c[0]) + " means " + esc(c[1]) + '.</p><div class="audio"><button type="button" class="btn sm primary" data-act="rdnext"><strong>Next &rarr;</strong></button></div>';
+      h += '<p class="tip" role="status">' + (good ? (tried ? "Yes, you got it. " : "Yes. ") : "Not quite. ") + esc(c[0]) + " means " + esc(c[1]) + '.</p><div class="audio"><button type="button" class="btn sm primary" data-act="rdnext"><strong>Next &rarr;</strong></button></div>';
     }
     return h + '<div class="audio"><button type="button" class="btn sm" data-act="rdlist"><strong>All lists</strong></button></div></section>';
   }
@@ -2151,16 +2165,20 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       case "rdstart": (function () {
         if (!S.read) S.read = {};
         var kind = t.getAttribute("data-k");
-        var items = RD_ITEMS.filter(function (x) { return x[2] === kind; }).sort(function (a, b) { return (S.read[a[0]] || 0) - (S.read[b[0]] || 0) + (Math.random() - 0.5); }).slice(0, 8);
-        rdState = { kind: kind, q: shuffle(items.slice()), cur: null, picked: -1, opts: [], first: 0, total: items.length, missed: {}, done: false };
+        var items = RD_ITEMS.filter(function (x) { return x[2] === kind; }).sort(function (a, b) { return (S.read[a[0]] || 0) - (S.read[b[0]] || 0) + (Math.random() - 0.5); });
+        var any = t.getAttribute("data-any") === "1", dueItems = items.filter(function (x) { return rdDue(x[0]); });
+        items = (dueItems.length || !any ? dueItems : items).slice(0, 6);
+        if (!items.length) { rdState = { kind: kind, q: [], cur: null, picked: -1, wrong: [], opts: [], first: 0, total: 0, missed: {}, done: true, none: true }; render(); window.scrollTo(0, 0); return; }
+        rdState = { kind: kind, q: shuffle(items.slice()), cur: null, picked: -1, wrong: [], opts: [], first: 0, total: items.length, missed: {}, done: false };
         rdNext(); render(); window.scrollTo(0, 0);
       })(); break;
       case "rdans": (function () {
         var st = rdState, i = Number(t.getAttribute("data-i")); if (st.picked >= 0 || !st.cur) return;
-        st.picked = i; var good = st.opts[i][0] === st.cur[0], k = st.cur[0];
+        var good = st.opts[i][0] === st.cur[0], k = st.cur[0];
         if (!S.read) S.read = {};
-        if (good) { S.read[k] = (S.read[k] || 0) + 1; if (!st.missed[k]) st.first++; }
-        else { st.missed[k] = 1; st.q.push(st.cur); S.read[k] = 0; }
+        if (good) { st.picked = i; if (!st.wrong.length) { st.first++; rdGrade(k, "first"); } else rdGrade(k, "second"); }
+        else if (!st.wrong.length) { st.wrong.push(i); st.missed[k] = 1; }
+        else { st.wrong.push(i); st.picked = i; st.q.push(st.cur); rdGrade(k, "miss"); }
         persist(); render();
       })(); break;
       case "rdnext": rdNext(); render(); window.scrollTo(0, 0); break;
@@ -2564,7 +2582,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
   function readTodayHTML() {
     var r = (S.read && typeof S.read === "object") ? S.read : {}, tot = RD_ITEMS.length, kn = RD_ITEMS.filter(function (x) { return (r[x[0]] || 0) >= 2; }).length;
-    return '<section class="panel"><div class="mhead"><h2>Read it</h2><span class="chip">' + kn + " of " + tot + '</span></div><p class="keep">Signs and menu words you will see in Italy, like Uscita and Bagno. Reading is easier than hearing, so this is a good place to start.</p><div class="row"><a class="btn primary" href="#read">Read a few words</a></div></section>';
+    return '<section class="panel"><div class="mhead"><h2>Read it</h2><span class="chip">' + kn + " of " + tot + '</span></div><p class="keep">' + (rdDueCount() ? rdDueCount() + " words to practice today. " : "Done for today. ") + 'Signs and menu words you will see in Italy, like Bagno, pesce and vino rosso. Reading is easier than hearing, so this is a good place to start.</p><div class="row"><a class="btn primary" href="#read">Read a few words</a></div></section>';
   }
   function weekSoundHTML() {
     var sd = weekSound(), n = (S.sounds[sd.id] && S.sounds[sd.id].n) || 0;
