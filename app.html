@@ -560,6 +560,11 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
 .keep { color: var(--ink-soft); font-size: 0.85rem; margin: 0; }
 [data-quiet="1"] .lede, [data-quiet="1"] .hint, [data-quiet="1"] .note { display: none !important; }
 [data-quiet="1"] .welcome .lede { display: block !important; }
+/* Word rows: name, meaning, then buttons on their own line so nothing overlaps */
+.rows li, .mode .rows li { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; align-items: start; padding: 12px 0; }
+.rows li .ren, .mode .rows li .ren { flex: none; }
+.rows li .pact, .mode .rows li .pact { margin: 6px 0 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.pact .btn { white-space: nowrap; }
 </style>
 </head>
 <body>
