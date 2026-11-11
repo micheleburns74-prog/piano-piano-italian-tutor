@@ -752,7 +752,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   var LSKEY = "piano-piano-v1";
   var app = document.getElementById("app");
   var toastEl = document.getElementById("toast");
-  var view = "today", sess = null, doneEntry = null, helpOpen = false;
+  var view = "today", sess = null, doneEntry = null, helpOpen = false, showHome = false;
   var statusText = "Saved on this device";
   var voices = [], itVoices = [], voice = null, voicesLoaded = false;
 
@@ -1001,7 +1001,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     }
     S.cards[item.id] = s;
   }
-  function newSession(queue, kind) { return { kind: kind || "review", queue: queue, i: 0, revealed: false, final: {}, learned: [], retried: {}, said: 0, startedAt: Date.now(), breakShown: false, breakDismissed: false }; }
+  function newSession(queue, kind) { showHome = false; return { kind: kind || "review", queue: queue, i: 0, revealed: false, final: {}, learned: [], retried: {}, said: 0, startedAt: Date.now(), breakShown: false, breakDismissed: false }; }
 
   function finishSession(early) {
     var ids = Object.keys(sess.final);
@@ -1239,9 +1239,13 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return h + '<p><a class="link" href="#today">Back to Today</a></p>';
   }
   function todayHTML() {
+    var resume = (sess && showHome) ? '<section class="panel"><p class="lede">You have a session in progress.</p><div class="row"><button type="button" class="btn primary" data-act="resumesess">Resume my session</button></div></section>' : "";
+    return resume + todayMain();
+  }
+  function todayMain() {
     if (!S.prefs.setup) return welcomeHTML();
-    if (doneEntry) return doneHTML();
-    if (sess) return sessionHTML();
+    if (doneEntry && !showHome) return doneHTML();
+    if (sess && !showHome) return sessionHTML();
     var t = dayKey(), rec = recommended();
     var fresh = freshCards(), learned = learnedCards();
     var due = learned.filter(function (c) { return isDue(c, t); }).length;
@@ -1637,6 +1641,10 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     render();
   }
   window.addEventListener("hashchange", route);
+  app.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest('a[href="#today"]');
+    if (a && /#today$/.test(a.getAttribute("href") || "")) { showHome = true; doneEntry = null; if (view === "today") render(); }
+  });
 
   /* ---------- Copy ---------- */
   function copyText(btn, text) {
@@ -1796,6 +1804,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         break;
       case "glword": if (BYID[id]) glStart(id); break;
       case "sayme": openSay("snd:" + t.getAttribute("data-t"), { it: t.getAttribute("data-t"), ph: t.getAttribute("data-p") || "", en: t.getAttribute("data-e") || "" }); break;
+      case "resumesess": showHome = false; render(); break;
       case "listen": clearEcho(); if (BYID[id]) speak(BYID[id].it, baseRate()); break;
       case "slow": clearEcho(); if (BYID[id]) speak(BYID[id].it, 0.5); break;
       case "word": clearEcho(); speak(t.getAttribute("data-w"), 0.7); break;
@@ -2428,7 +2437,14 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     if (g === "tback") { gl.trouble = null; gl.step = gl.back; render(); speak(c.it, 0.5); return; }
     if (g === "resume") { gl.paused = false; render(); return; }
     if (g === "finish") { glFinish(t.getAttribute("data-h") || ""); return; }
-    if (g === "stop") { gl = null; window.location.hash = "#plan"; return; }
+    if (g === "back") {
+      recStop();
+      if (gl.step > (gl.warm ? -1 : 0)) { gl.step--; gl.trouble = null; gl.paused = false; render(); return; }
+      var ci = -1; CARDS.forEach(function (x, i) { if (x.id === gl.id) ci = i; });
+      if (ci > 0) glStart(CARDS[ci - 1].id); else { gl = null; window.location.hash = "#today"; }
+      return;
+    }
+    if (g === "stop") { gl = null; window.location.hash = "#today"; return; }
   }
   var recState = { rec: null, timer: null };
   function micOK() { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder); }
@@ -2521,7 +2537,8 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function glFrame(inner, steps) {
     var names = ["Meaning", "Listening", "Reading", "Speaking", "Using it"];
     var dots = names.map(function (n, i) { return '<li' + (i === gl.step ? ' aria-current="step"' : i < gl.step ? ' class="done"' : "") + ">" + n + "</li>"; }).join("");
-    return '<section class="panel"><div class="sbar"><span class="count">Guided lesson</span><button type="button" class="link" data-act="gl" data-g="stop">Stop</button></div>' +
+    return '<section class="panel"><div class="sbar"><span class="count">Guided lesson</span><button type="button" class="link" data-act="gl" data-g="stop">Back to Today</button></div>' +
+      (gl.done ? "" : '<div class="row"><button type="button" class="btn sm" data-act="gl" data-g="back">\u2190 Back</button></div>') +
       (gl.step >= 0 && !gl.done ? '<ol class="gsteps" aria-label="Lesson steps">' + dots + "</ol>" : "") + inner + "</section>";
   }
   function lessonHTML() {
@@ -3292,7 +3309,6 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   setTimeout(function () { if (!voicesLoaded) { voicesLoaded = true; if (view === "today" && !sess && !doneEntry) render(); } }, 1500);
   applyPrefs();
   setInterval(tick, 1000);
-  if ((!window.location.hash || window.location.hash === "#") && S.sessions.length) { try { var sh0 = shakyCards(); glStart(sh0.length ? sh0[0].id : glPickNext()); } catch (e) {} }
   route();
   initCloud();
   initTutor();
