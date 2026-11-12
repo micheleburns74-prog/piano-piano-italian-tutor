@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "82";
+  var VERSION = "83";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -937,7 +937,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     var v = null;
     for (var i = 0; i < itVoices.length; i++) { if (itVoices[i].name === S.voice) { v = itVoices[i]; break; } }
     if (!v) {
-      var best = ["Alice", "Federica", "Luca", "Paola", "Elsa"];
+      var best = ["Luca", "Cosimo", "Alice", "Federica", "Paola", "Elsa"];
       for (var b = 0; b < best.length && !v; b++) v = itVoices.find(function (x) { return x.name.indexOf(best[b]) === 0; }) || null;
       if (!v) v = itVoices.find(function (x) { return !/compact|grandma|grandpa|rocko/i.test(x.name); }) || itVoices[0] || null;
     }
@@ -3619,6 +3619,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     return list.find(function (v) { return /en[-_]US/i.test(v.lang); }) || list[0] || null;
   }
   function speakEn(text, onend, force) {
+    if (true) { if (onend) setTimeout(onend, 50); return; }
     if (!("speechSynthesis" in window) && !useOnline()) { if (onend) onend(); return; }
     if (!force && S.prefs.coach === false) { if (onend) setTimeout(onend, 50); return; }
     if (useOnline() && !window.__onlineBroken) { onlinePlay(text, "en", 1, onend, function () { window.__onlineBroken = true; speakEn(text, onend, force); }); return; }
@@ -4045,6 +4046,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     }
   } catch (e) {}
   setTimeout(function () { if (!voicesLoaded) { voicesLoaded = true; if (view === "today" && !sess && !doneEntry) render(); } }, 1500);
+  if (!S.prefs.maleMig82) { S.prefs.maleMig82 = true; S.voice = ""; try { persist(); pickVoice(); } catch (e) {} }
   if (IS_IOS && !S.prefs.ovMig80) { S.prefs.ovMig80 = true; S.prefs.onlineVoice = false; try { persist(); } catch (e) {} }
   if (IS_IOS && !S.prefs.iosOptIn && S.prefs.check) { S.prefs.check = false; try { persist(); } catch (e) {} }
   applyPrefs();
