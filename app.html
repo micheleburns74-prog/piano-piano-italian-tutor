@@ -936,6 +936,15 @@ body { font-size: 1.06rem; line-height: 1.6; }
     }
     voice = v;
   }
+  var sndStage = "";
+  function soundCheckHTML() {
+    if (S.prefs.soundOk) return "";
+    var h = '<section class="panel"><h2>Quick sound check</h2>';
+    if (sndStage === "") h += '<p class="tip">Tap the button. You should hear the Italian word Ciao.</p><p><button type="button" class="btn" data-act="sndtest"><strong>Play Ciao</strong></button></p>';
+    else if (sndStage === "asked") h += '<p class="tip"><strong>Did you hear it?</strong></p><p class="tgrid"><button type="button" class="btn" data-act="sndyes"><strong>Yes, I heard it</strong></button><button type="button" class="btn" data-act="sndno"><strong>No sound</strong></button></p>';
+    else h += '<p class="tip"><strong>Try these, then tap Play Ciao again:</strong></p><ol><li>iPhone: flip the small switch on the left side so no orange shows.</li><li>Turn the volume up with the side buttons.</li><li>If you opened this from a text or email, open it in Safari or Chrome instead (tap the compass icon).</li><li>Make sure Bluetooth speakers or earbuds are not taking the sound.</li></ol><p><button type="button" class="btn" data-act="sndtest"><strong>Play Ciao again</strong></button></p>';
+    return h + '</section>';
+  }
   function speak(text, rate, onend) {
     if (!("speechSynthesis" in window)) { toast("This browser cannot speak. Use the Google Translate link."); if (onend) onend(); return; }
     try {
@@ -1753,7 +1762,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
       '<h3>5 minutes</h3><div class="tgrid">' + tb("Read words", rdn ? "6 words" : "done today", 'href="#read"', 1) + tb("Write words", wrn ? "5 words" : "done today", 'href="#write"', 1) + tb("Say a word", "1 word", 'href="#say"', 1) + tb("Quick phrases", "3 phrases", 'data-act="startquick"') + "</div>" +
       '<h3>10 minutes</h3><div class="tgrid one">' + tb("Today's session", "new phrases and a review", 'data-act="' + recAct + '"') + "</div>" +
       '<h3>20 minutes or more</h3><div class="tgrid">' + tb("1. Train your ear", "2 min", 'href="#pairs"', 1) + tb("2. Say 3 words", "8 min", 'href="#say"', 1) + tb("3. Read words", "3 min", 'href="#read"', 1) + tb("4. Write words", "3 min", 'href="#write"', 1) + tb("5. Today's session", "10 min", 'data-act="' + recAct + '"') + "</div></section>";
-    return heroLean + quick5 + '<details class="more-opts"><summary>More: today\'s phrases and sound of the week</summary>' + nextGoal + reviewOnly + '<div class="modes">' + modes + "</div>" + weekSoundHTML() + '<p class="note"><a class="link" href="#all">All lessons, from the beginning</a></p>' + more + "</details>";
+    return soundCheckHTML() + heroLean + quick5 + '<details class="more-opts"><summary>More: today\'s phrases and sound of the week</summary>' + nextGoal + reviewOnly + '<div class="modes">' + modes + "</div>" + weekSoundHTML() + '<p class="note"><a class="link" href="#all">All lessons, from the beginning</a></p>' + more + "</details>";
   }
   function daysSinceActive() {
     var last = "";
@@ -2330,6 +2339,9 @@ body { font-size: 1.06rem; line-height: 1.6; }
       case "rdnext": rdNext(); render(); window.scrollTo(0, 0); break;
       case "goback": window.location.hash = "#" + (prevView && prevView !== view ? prevView : "today"); break;
       case "rdlist": rdState.kind = ""; rdState.done = false; render(); window.scrollTo(0, 0); break;
+      case "sndtest": speak("Ciao", 0.8); sndStage = "asked"; setTimeout(render, 900); break;
+      case "sndyes": S.prefs.soundOk = true; persist(); render(); break;
+      case "sndno": sndStage = "help"; render(); break;
       case "rdhear": if (rdState.cur) speak(rdState.cur[0], baseRate()); break;
       case "sayword": echoTok++; pzStep = 0; sayView = ""; sayId = t.getAttribute("data-id"); if (view === "say") { render(); window.scrollTo(0, 0); } else window.location.hash = "#say"; break;
       case "saylist": pzStep = 0; sayView = ""; sayId = ""; echoTok++; render(); break;
