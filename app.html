@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "68";
+  var VERSION = "69";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -2167,7 +2167,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if ((view === "read" || view === "write" || view === "say" || view === "pairs") && prevView && prevView !== view) {
       body = '<p class="backrow"><button type="button" class="btn sm" data-act="goback"><strong>&larr; Back</strong></button></p>' + body;
     }
-    app.innerHTML = headerHTML() + '<div class="wrap"><main id="main">' + body + '</main><p class="status" id="status">' + esc(statusText) + '</p><footer class="foot">Piano Piano, version ' + VERSION + ' &middot; <a href="https://micheleburns74-prog.github.io/piano-piano-italian-tutor/#privacy" target="_blank" rel="noopener">Privacy and terms</a> &middot; <a href="https://github.com/micheleburns74-prog/piano-piano-italian-tutor/issues" target="_blank" rel="noopener">Send feedback</a></footer></div>';
+    app.innerHTML = headerHTML() + '<div class="wrap"><main id="main">' + body + '</main><p class="status" id="status">' + esc(statusText) + '</p><footer class="foot">Made by Michele Burns &middot; Piano Piano, version ' + VERSION + ' &middot; <a href="https://micheleburns74-prog.github.io/piano-piano-italian-tutor/#privacy" target="_blank" rel="noopener">Privacy and terms</a> &middot; <a href="https://github.com/micheleburns74-prog/piano-piano-italian-tutor/issues" target="_blank" rel="noopener">Send feedback</a></footer></div>';
     try {
       var nav = app.querySelector(".tabs"), cur = app.querySelector('.tabs a[aria-current="page"]');
       if (nav && cur) nav.scrollLeft = cur.offsetLeft - (nav.clientWidth - cur.offsetWidth) / 2;
@@ -3200,8 +3200,14 @@ body { font-size: 1.06rem; line-height: 1.6; }
     };
     r.onerror = function (e) { var er = (e && e.error) || "error"; if (er !== "no-speech" && er !== "aborted") h.fb = { err: er }; };
     r.onend = function () { h.fbBusy = false; if (!h.fb) h.fb = { alts: [] }; refresh(); setTimeout(function () { if (tok === fbToken) { try { fbSay(h); } catch (e) {} } }, 350); };
+    var wd = setTimeout(function () {
+      if (!h.fbBusy || tok !== fbToken) return;
+      try { r.onend = null; r.abort(); } catch (e) {}
+      h.fbBusy = false; if (!h.fb) h.fb = { err: "unavailable" }; refresh();
+    }, 9000);
+    var oe = r.onend; r.onend = function () { clearTimeout(wd); oe(); };
     refresh();
-    try { r.start(); } catch (e) { h.fbBusy = false; h.fb = { err: "unavailable" }; refresh(); }
+    try { r.start(); } catch (e) { clearTimeout(wd); h.fbBusy = false; h.fb = { err: "unavailable" }; refresh(); }
   }
   function fbHTMLCore(h, key) {
     if (key === "piece") return '<p class="note">Listen to the piece, say it, then tap Play my recording and compare by ear.</p>';
@@ -3216,7 +3222,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if (v.kind === "err") {
       var er = v.err;
       if (er === "not-allowed") return '<p class="note">The pronunciation check could not use the microphone. Allow it in the address bar and try again.</p>';
-      if (IS_IOS && (er === "unavailable" || er === "service-not-allowed")) return '<p class="note">To check words on iPhone, turn on Dictation: Settings, General, Keyboard, Enable Dictation. Then try again.</p>';
+      if (IS_IOS && (er === "unavailable" || er === "service-not-allowed")) return '<p class="note">The check did not answer. On iPhone, turn on Dictation: Settings, General, Keyboard, Enable Dictation, then tap Check my word again and speak right away. Your recording still works.</p>';
       if (er === "unavailable" || er === "service-not-allowed") return '<p class="note">' + (location.protocol === "file:" ? 'Chrome does not run the pronunciation check on a file opened from your computer. Open Piano Piano from its web link instead.' : 'The pronunciation check could not start. Check that the microphone is allowed for this page, then try again.') + '</p>';
       if (er === "network") return '<p class="note">The pronunciation check needs an internet connection. Your recording still works.</p>';
       return '<p class="note">The pronunciation check is not working right now. Your recording still works.</p>';
