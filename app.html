@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "73";
+  var VERSION = "74";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -1273,7 +1273,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
       '<label for="formSel">Phrases like "I am American"</label><select id="formSel">' + opt("f", "Feminine forms (americana)", S.prefs.form) + opt("m", "Masculine forms (americano)", S.prefs.form) + "</select></section>" +
       '<h2 class="grp">Sound</h2><section class="panel hbody"><h2>Voice</h2><p class="note">The page reads Italian aloud using a voice that is built into your phone or computer.</p>' + voiceBlock +
       '<label class="check"><input type="checkbox" id="autoSel"' + (S.auto ? " checked" : "") + "> Play each phrase automatically</label>" +
-      '<label class="check"><input type="checkbox" id="chkSel"' + (S.prefs.check ? " checked" : "") + (SR ? "" : " disabled") + "> Check my pronunciation when I record (Chrome sends your voice to Google\u2019s speech service)</label>" +
+      '<label class="check"><input type="checkbox" id="chkSel"' + (S.prefs.check ? " checked" : "") + (SR ? "" : " disabled") + "> Check my pronunciation when I record (" + (IS_IOS ? "your iPhone uses Apple\u2019s speech service" : "Chrome sends your voice to Google\u2019s speech service") + ")</label>" +
       '<label class="check"><input type="checkbox" id="ovSel"' + (useOnline() ? " checked" : "") + '> Use the online Italian voice (needs internet. Each word you tap is sent to Google to be spoken. Good if the built-in voice is silent.)</label>' +
       '<label for="cvSel">Voice for spoken coaching</label><select id="cvSel">' + opt("it", "Italian woman speaking English (Italian accent)", S.prefs.coachVoice || "it") + opt("en", "English voice", S.prefs.coachVoice || "it") + "</select>" +
       '<label class="check"><input type="checkbox" id="coachSel"' + (S.prefs.coach === false ? "" : " checked") + "> Spoken coaching lines in English</label>" +
@@ -1331,7 +1331,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
       '<label for="wForm">Phrases like "I am American"</label><select id="wForm"><option value="f">Feminine forms (americana)</option><option value="m">Masculine forms (americano)</option></select>' +
       '<label for="wPer">New phrases per session</label><select id="wPer"><option value="3">3 (recommended)</option><option value="5">5</option></select>' +
       '<div><button type="button" class="btn primary big" data-act="setup">Begin</button></div>' +
-      '<p class="note">Everything stays on this device. No account. Your recordings are never uploaded, unless you turn on the pronunciation check, which uses Chrome\u2019s speech service. You can change all of this in Settings.</p></section>';
+      '<p class="note">Everything stays on this device. No account. Your recordings are never uploaded, unless you turn on the pronunciation check, which uses your browser\u2019s speech service. You can change all of this in Settings.</p></section>';
   }
   var sayId = "", echoTok = 0, beepCtx = null, rhythmTok = 0;
   function beep(freq, dur, vol) {
@@ -2232,7 +2232,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
       (on ? '<button type="button" class="btn rec on" data-m="recstop">Stop recording</button>' : '<button type="button" class="btn rec" data-m="rec">\u25cf Record me</button>') +
       '<button type="button" class="btn" data-m="recplay"' + (has ? "" : " disabled") + ">Play my recording</button>" + (has ? '<button type="button" class="btn" data-m="cmp">Hear the word, then my recording</button>' : "") + "</div>" + (has ? '<p class="hint">Listen for the loud syllable and the last sound. Same? Great. Different? Record again.</p>' : "") +
       (on ? '<p class="hint" role="status">Recording. Say it, then tap Stop.</p>' : "") +
-      (sm.mic === "denied" ? '<p class="note">The microphone is turned off for this page. Click the lock icon in the address bar, allow the microphone, then tap Record me again.</p>' : sm.mic === "blocked" ? '<p class="note">This view does not allow the microphone. Open Piano Piano in Chrome, Edge or Safari on a computer or phone.</p>' : has ? '<p class="note">' + (S.prefs.check ? 'Your recording stays in this tab. The pronunciation check uses Chrome\u2019s speech service (Google).' : 'Your recording stays in this tab and is never uploaded.') + '</p>' : "") + fbHTML(sm, "w") +
+      (sm.mic === "denied" ? '<p class="note">The microphone is turned off for this page. Click the lock icon in the address bar, allow the microphone, then tap Record me again.</p>' : sm.mic === "blocked" ? '<p class="note">This view does not allow the microphone. Open Piano Piano in Chrome, Edge or Safari on a computer or phone.</p>' : has ? '<p class="note">' + (S.prefs.check ? 'Your recording stays in this tab. ' + (IS_IOS ? 'The check uses your iPhone\u2019s own speech service.' : 'The pronunciation check uses Chrome\u2019s speech service (Google).') + '' : 'Your recording stays in this tab and is never uploaded.') + '</p>' : "") + fbHTML(sm, "w") +
       '<div class="row"><button type="button" class="btn ghost" data-m="close">Close</button></div>';
   }
   function openSay(id, custom) {
@@ -3217,7 +3217,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if ((key !== "w" && key !== "word") || !SR) return "";
     var c = chkCard(h); if (!c || (h === sm && sm.card && sm.card.noCheck)) return "";
     var on = h === sm ? 'data-m="chkon"' : 'data-act="gl" data-g="chkon"';
-    if (!S.prefs.check) return '<div class="row"><button type="button" class="btn sm" ' + on + '>Turn on pronunciation check</button></div><p class="note">Chrome sends your voice to Google’s speech service to do the check.</p>';
+    if (!S.prefs.check) return '<div class="row"><button type="button" class="btn sm" ' + on + '>Turn on pronunciation check</button></div><p class="note">' + (IS_IOS ? 'On iPhone the check uses Apple’s speech service. Your recording never leaves your phone.' : 'Chrome sends your voice to Google’s speech service to do the check.') + '</p>';
     if (h.fbBusy) return '<p class="hint" role="status">' + (IS_IOS ? 'Listening. Say the word now.' : 'Checking…') + '</p>';
     var k = key === "w" ? "word" : key, hk = h.fbKey === "w" ? "word" : h.fbKey;
     if (!h.fb || hk !== k) return "";
@@ -3245,7 +3245,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if (on) h += '<p class="hint" role="status">Recording. Say it, then tap Stop.</p>';
     if (gl.mic === "denied") h += '<p class="note">The microphone is turned off for this page. Click the lock or microphone icon in the address bar, allow the microphone, then tap Record me again.</p>';
     else if (gl.mic === "blocked") h += '<p class="note">This view does not allow the microphone. This browser does not allow recording, so try Chrome, Edge or Safari. Everything else in the lesson still works.</p>';
-    else if (has) h += '<p class="note">' + (S.prefs.check ? 'Your recording stays in this browser tab. The pronunciation check uses Chrome\u2019s speech service (Google).' : 'Your recording stays in this browser tab. It is never uploaded, and it is gone when you close the tab.') + '</p>';
+    else if (has) h += '<p class="note">' + (S.prefs.check ? 'Your recording stays on your device. ' + (IS_IOS ? 'The check uses your iPhone\u2019s own speech service.' : 'The pronunciation check uses Chrome\u2019s speech service (Google).') : 'Your recording stays in this browser tab. It is never uploaded, and it is gone when you close the tab.') + '</p>';
     h += fbHTML(gl, key);
     h += '<p class="note"><button type="button" class="link" data-act="gl" data-g="saytools">More ways to practice saying this</button></p>';
     return h;
@@ -4025,6 +4025,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     }
   } catch (e) {}
   setTimeout(function () { if (!voicesLoaded) { voicesLoaded = true; if (view === "today" && !sess && !doneEntry) render(); } }, 1500);
+  if (IS_IOS && S.prefs.check === undefined) { S.prefs.check = true; try { persist(); } catch (e) {} }
   applyPrefs();
   setInterval(tick, 1000);
   function checkUpdate() {
