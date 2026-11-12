@@ -1229,13 +1229,9 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return ((r.said || 0) + (r.rated || 0) + (r.dictN || 0) + (r.typeN || 0) + (r.sounds || 0) + (r.heard || 0) + (r.other || 0)) > 0;
   }
   function weekDotsHTML() {
-    var names = ["S", "M", "T", "W", "T", "F", "S"], out = "", n = 0, i, k, p;
-    for (i = 6; i >= 0; i--) {
-      k = addDays(dayKey(), -i); p = k.split("-");
-      var on = activeDay(k); if (on) n++;
-      out += "<span><i" + (on ? ' class="on"' : "") + "></i>" + names[new Date(+p[0], +p[1] - 1, +p[2]).getDay()] + "</span>";
-    }
-    return '<div class="dots" role="img" aria-label="' + n + ' of the last 7 days practiced">' + out + '</div><p class="hint">' + (n ? pl(n, "day") + " this week. Every dot counts." : "Your dots fill in as you practice.") + "</p>";
+    var t = dayKey(), on = activeDay(t), n = 0, i;
+    for (i = 6; i >= 0; i--) if (activeDay(addDays(t, -i))) n++;
+    return '<p class="tip"><strong>' + (on ? "Today: practiced. Well done." : "Today: not yet. Even 2 minutes counts.") + "</strong></p><p class=\"hint\">" + (n ? pl(n, "day") + " practiced in the last 7 days." : "Your practice days will show here.") + "</p>";
   }
   function whereWasI() {
     var last = S.sessions[S.sessions.length - 1];
