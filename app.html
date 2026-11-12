@@ -580,6 +580,22 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
 .tgrid .btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; width: 100%; padding: 8px 12px; text-align: center; font-size: 0.95rem; box-sizing: border-box; }
 .tgrid .btn strong { font-weight: 700; }
 .tgrid .btn .sub { font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); }
+/* Pass 3: bigger, clearer, easier to read */
+body { font-size: 1.06rem; line-height: 1.6; }
+.btn { min-height: 48px; padding: 10px 18px; font-size: 1rem; font-weight: 600; border-width: 2px; border-color: var(--ink-soft); border-radius: 10px; }
+.btn.sm { min-height: 44px; padding: 8px 14px; font-size: 0.98rem; border-radius: 9px; }
+.btn.primary { border-color: var(--accent); }
+.btn.big { min-height: 56px; font-size: 1.08rem; padding-inline: 26px; }
+.panel { border: 2px solid var(--line); border-radius: 14px; padding: 22px; }
+.panel h2 { font-size: 1.3rem; margin-bottom: 8px; }
+.tip, .lede { font-size: 1.05rem; color: var(--ink); }
+.hint, .note { font-size: 0.98rem; color: var(--ink-soft); }
+.tblock h3 { font-size: 0.85rem; color: var(--ink); margin: 26px 0 10px; }
+.tgrid .btn { min-height: 64px; font-size: 1.02rem; }
+.tgrid .btn .sub { font-size: 0.88rem; color: var(--ink-soft); }
+.tabs a { font-size: 1rem; }
+.audio .btn, .panel .audio .btn { border: 2px solid var(--ink-soft); background: transparent; color: var(--ink); }
+.audio .btn.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
 /* Say it page */
 .vrow { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
 .vlip { color: var(--accent, #1f4a3d); flex: 0 0 auto; }
