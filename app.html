@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "66";
+  var VERSION = "67";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -1718,7 +1718,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     } else if (s === 2) {
       h2 += '<p class="hint">I say it slowly, then wait while you say it. Three times.</p><div class="audio">' + btn("Echo the whole word", "echo", ' data-t="' + esc(c.it) + '" data-n="3"', "primary") + btn("Stop", "echostop", "") + '</div><p class="tip" id="echoMsg" role="status" aria-live="polite">Ready when you are.</p><p class="hint" id="echoDiag"></p>';
     } else if (s === 3) {
-      h2 += '<div class="audio">' + btn("Record me", "sayopen", ' data-id="' + c.id + '"', "primary") + btn("My first recording", "playfirst", ' data-id="' + c.id + '"') + btn("My latest recording", "playlast", ' data-id="' + c.id + '"') + '</div><p class="hint">Record yourself, then use "Model, then me" to compare. Your first and latest recordings stay on this device so you can hear your progress.</p>';
+      h2 += '<div class="audio">' + btn("Record me", "sayopen", ' data-id="' + c.id + '"', "primary") + btn("My first recording", "playfirst", ' data-id="' + c.id + '"') + btn("My latest recording", "playlast", ' data-id="' + c.id + '"') + '</div><p class="hint">Record yourself, then use "Hear the word, then my recording" to compare. Your first and latest recordings stay on this device so you can hear your progress.</p>';
     } else if (s === 4) {
       h2 += '<div class="beats" id="beats">' + sy.map(function (x, i) {
         return '<button type="button" class="btn beat' + (i === st ? " st" : "") + '" data-act="beat" data-st="' + (i === st ? 1 : 0) + '" lang="it">' + esc(x.t) + "</button>";
@@ -2230,7 +2230,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
       '<p class="it" lang="it" style="font-size:1.6rem;margin:0">' + esc(c.it) + '</p><p class="hint" style="margin:0">' + esc(c.en) + '</p>' +
       '<div class="audio"><button type="button" class="btn" data-m="hear" data-id="' + sm.id + '">Hear the Italian</button>' +
       (on ? '<button type="button" class="btn rec on" data-m="recstop">Stop recording</button>' : '<button type="button" class="btn rec" data-m="rec">\u25cf Record me</button>') +
-      '<button type="button" class="btn" data-m="recplay"' + (has ? "" : " disabled") + ">Play my recording</button>" + (has ? '<button type="button" class="btn" data-m="cmp">Model, then me</button>' : "") + "</div>" +
+      '<button type="button" class="btn" data-m="recplay"' + (has ? "" : " disabled") + ">Play my recording</button>" + (has ? '<button type="button" class="btn" data-m="cmp">Hear the word, then my recording</button>' : "") + "</div>" + (has ? '<p class="hint">Listen for the loud syllable and the last sound. Same? Great. Different? Record again.</p>' : "") +
       (on ? '<p class="hint" role="status">Recording. Say it, then tap Stop.</p>' : "") +
       (sm.mic === "denied" ? '<p class="note">The microphone is turned off for this page. Click the lock icon in the address bar, allow the microphone, then tap Record me again.</p>' : sm.mic === "blocked" ? '<p class="note">This view does not allow the microphone. Open Piano Piano in Chrome, Edge or Safari on a computer or phone.</p>' : has ? '<p class="note">' + (S.prefs.check ? 'Your recording stays in this tab. The pronunciation check uses Chrome\u2019s speech service (Google).' : 'Your recording stays in this tab and is never uploaded.') + '</p>' : "") + fbHTML(sm, "w") +
       '<div class="row"><button type="button" class="btn ghost" data-m="close">Close</button></div>';
@@ -3203,7 +3203,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
   function recRowHTML(key, label) {
     var on = gl.recKey === key, has = gl.recs && gl.recs[key];
     var h = '<div class="audio">' + (on ? '<button type="button" class="btn rec on" data-act="gl" data-g="recstop">Stop recording</button>' : '<button type="button" class="btn rec" data-act="gl" data-g="rec" data-key="' + key + '">\u25cf ' + (label || "Record me") + "</button>") +
-      '<button type="button" class="btn" data-act="gl" data-g="recplay" data-key="' + key + '"' + (has ? "" : " disabled") + ">Play my recording</button>" + (has ? '<button type="button" class="btn" data-act="gl" data-g="cmp" data-key="' + key + '">Model, then me</button>' : "") + "</div>";
+      '<button type="button" class="btn" data-act="gl" data-g="recplay" data-key="' + key + '"' + (has ? "" : " disabled") + ">Play my recording</button>" + (has ? '<button type="button" class="btn" data-act="gl" data-g="cmp" data-key="' + key + '">Hear the word, then my recording</button>' : "") + "</div>" + (has ? '<p class="hint">Listen for the loud syllable and the last sound. Same? Great. Different? Record again.</p>' : "");
     if (on) h += '<p class="hint" role="status">Recording. Say it, then tap Stop.</p>';
     if (gl.mic === "denied") h += '<p class="note">The microphone is turned off for this page. Click the lock or microphone icon in the address bar, allow the microphone, then tap Record me again.</p>';
     else if (gl.mic === "blocked") h += '<p class="note">This view does not allow the microphone. This browser does not allow recording, so try Chrome, Edge or Safari. Everything else in the lesson still works.</p>';
