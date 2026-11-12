@@ -1231,7 +1231,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function weekDotsHTML() {
     var t = dayKey(), on = activeDay(t), n = 0, i;
     for (i = 6; i >= 0; i--) if (activeDay(addDays(t, -i))) n++;
-    return '<p class="tip"><strong>' + (on ? "Today: practiced. Well done." : "Today: not yet. Try a 5 minute practice below.") + "</strong></p><p class=\"hint\">" + (n ? pl(n, "day") + " practiced in the last 7 days." : "Your practice days will show here.") + "</p>";
+    return '<p class="tip"><strong>' + (on ? "Today: practiced. Well done." : "Today: not yet. Pick what fits your time below.") + "</strong></p><p class=\"hint\">" + (n ? pl(n, "day") + " practiced in the last 7 days." : "Your practice days will show here.") + "</p>";
   }
   function whereWasI() {
     var last = S.sessions[S.sessions.length - 1];
@@ -1706,9 +1706,14 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       var recCard = rec === "mix" ? mixCard : newCard, other = rec === "mix" ? newCard : mixCard;
       return hero + '<div class="modes one">' + recCard + "</div>" + quickPanel + '<details class="more-opts"><summary>Other ways to practice</summary><div class="modes">' + other + "</div></details>";
     }
-    var heroLean = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>" + (S.sessions.length ? "Today" : "Welcome to Piano Piano") + "</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button></div>' + weekDotsHTML() + "</section>";
+    var heroLean = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>" + (S.sessions.length ? "Today" : "Welcome to Piano Piano") + "</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button> <span class="hint">about 10 minutes</span></div>' + weekDotsHTML() + "</section>";
     var rdn = rdDueCount(), wrn = wrDueCount();
-    var quick5 = '<section class="panel"><h2>Only have 5 minutes?</h2><p class="tip">Pick one. Each takes 5 minutes or less. Stop whenever you like.</p><div class="row"><a class="btn" href="#read"><strong>Read words</strong>' + (rdn ? " (6 words)" : " (done today)") + '</a><a class="btn" href="#write"><strong>Write words</strong>' + (wrn ? " (5 words)" : " (done today)") + '</a><a class="btn" href="#say"><strong>Say a word</strong></a><a class="btn" href="#pairs"><strong>Train your ear</strong></a></div>' + quickLink + "</section>";
+    var recAct = rec === "mix" ? "startmix" : "startnew";
+    var quick5 = '<section class="panel"><h2>How much time do you have?</h2><p class="tip">Pick what fits today. Stop whenever you like.</p>' +
+      '<h3 class="mlabel">2 minutes</h3><div class="row"><button type="button" class="btn" data-act="rdstart" data-k="start" data-n="3"><strong>Read 3 words</strong></button><a class="btn" href="#pairs"><strong>Train your ear</strong></a></div>' +
+      '<h3 class="mlabel">5 minutes</h3><div class="row"><a class="btn" href="#read"><strong>Read words</strong>' + (rdn ? " (6 words)" : " (done today)") + '</a><a class="btn" href="#write"><strong>Write words</strong>' + (wrn ? " (5 words)" : " (done today)") + '</a><a class="btn" href="#say"><strong>Say a word</strong></a><a class="btn" href="#pairs"><strong>Train your ear</strong></a></div>' + quickLink +
+      '<h3 class="mlabel">10 minutes</h3><div class="row"><button type="button" class="btn" data-act="' + recAct + '"><strong>Today\'s session</strong> (new phrases and a review)</button></div>' +
+      '<h3 class="mlabel">20 minutes or more</h3><ol class="plan20"><li><a class="link" href="#pairs">Train your ear</a> (2 minutes)</li><li><a class="link" href="#say">Say 3 words</a> (8 minutes)</li><li><a class="link" href="#read">Read words</a> (3 minutes)</li><li><a class="link" href="#write">Write words</a> (3 minutes)</li><li>Then <button type="button" class="link" data-act="' + recAct + '">today\'s session</button></li></ol></section>';
     return heroLean + quick5 + '<details class="more-opts"><summary>More: today\'s phrases and sound of the week</summary>' + nextGoal + reviewOnly + '<div class="modes">' + modes + "</div>" + weekSoundHTML() + '<p class="note"><a class="link" href="#all">All lessons, from the beginning</a></p>' + more + "</details>";
   }
   function daysSinceActive() {
@@ -2264,10 +2269,10 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         var kind = t.getAttribute("data-k");
         var items = RD_ITEMS.filter(function (x) { return x[2] === kind; }).sort(function (a, b) { return (S.read[a[0]] || 0) - (S.read[b[0]] || 0) + (Math.random() - 0.5); });
         var any = t.getAttribute("data-any") === "1", dueItems = items.filter(function (x) { return rdDue(x[0]); });
-        items = (dueItems.length || !any ? dueItems : items).slice(0, 6);
+        items = (dueItems.length || !any ? dueItems : items).slice(0, Number(t.getAttribute("data-n")) || 6);
         if (!items.length) { rdState = { kind: kind, q: [], cur: null, picked: -1, wrong: [], opts: [], first: 0, total: 0, missed: {}, done: true, none: true }; render(); window.scrollTo(0, 0); return; }
         rdState = { kind: kind, q: shuffle(items.slice()), cur: null, picked: -1, wrong: [], opts: [], first: 0, total: items.length, missed: {}, done: false };
-        rdNext(); render(); window.scrollTo(0, 0);
+        rdNext(); if (view !== "read") { window.location.hash = "#read"; } else { render(); window.scrollTo(0, 0); }
       })(); break;
       case "rdans": (function () {
         var st = rdState, i = Number(t.getAttribute("data-i")); if (st.picked >= 0 || !st.cur) return;
