@@ -1979,7 +1979,10 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     h += "</div>";
     if (q.picked) {
       var ok = q.picked === q.ans.id;
-      h += '<p class="lede">' + (ok ? "Yes. " : "Not this time. ") + "That was <b lang=\"it\">" + esc(q.ans.it) + "</b>, " + esc(q.ans.en) + ".</p>" + (q.ans.tip ? '<p class="tip">' + esc(q.ans.tip) + "</p>" : "") +
+      var oth = q.pair[0].id === q.ans.id ? q.pair[1] : q.pair[0];
+      h += '<p class="lede">' + (ok ? "Yes." : "Not this time.") + " You heard <b lang=\"it\">" + esc(q.ans.it) + "</b>.</p>" +
+        '<ul class="rows"><li><span class="rit" lang="it"><b>' + esc(q.ans.it) + '</b></span><span class="ren">' + esc(q.ans.en) + ' (what you heard)</span><span class="pact"><button type="button" class="btn sm" data-act="word" data-w="' + esc(q.ans.it) + '">' + SPK_SM + ' Hear</button></span></li>' +
+        '<li><span class="rit" lang="it"><b>' + esc(oth.it) + '</b></span><span class="ren">' + esc(oth.en) + ' (the other word)</span><span class="pact"><button type="button" class="btn sm" data-act="word" data-w="' + esc(oth.it) + '">' + SPK_SM + ' Hear</button></span></li></ul>' + (q.ans.tip ? '<p class="tip">' + esc(q.ans.tip) + "</p>" : "") +
         '<div class="row"><button type="button" class="btn" data-act="pboth">Hear both slowly</button><button type="button" class="btn primary" data-act="pnext" data-primary>' + (pq.i === pq.qs.length - 1 ? "See result" : "Next") + "</button></div>";
     }
     return h + "</section>";
