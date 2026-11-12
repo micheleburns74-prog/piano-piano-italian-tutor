@@ -942,7 +942,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     var h = '<section class="panel"><h2>Quick sound check</h2>';
     if (sndStage === "") h += '<p class="tip">Tap the button. You should hear the Italian word Ciao.</p><p><button type="button" class="btn" data-act="sndtest"><strong>Play Ciao</strong></button></p>';
     else if (sndStage === "asked") h += '<p class="tip"><strong>Did you hear it?</strong></p><p class="tgrid"><button type="button" class="btn" data-act="sndyes"><strong>Yes, I heard it</strong></button><button type="button" class="btn" data-act="sndno"><strong>No sound</strong></button></p>';
-    else h += '<p class="tip"><strong>Try these, then tap Play Ciao again:</strong></p><ol><li>iPhone: flip the small switch on the left side so no orange shows.</li><li>Turn the volume up with the side buttons.</li><li>If you opened this from a text or email, open it in Safari or Chrome instead (tap the compass icon).</li><li>Make sure Bluetooth speakers or earbuds are not taking the sound.</li></ol><p><button type="button" class="btn" data-act="sndtest"><strong>Play Ciao again</strong></button></p>';
+    else h += '<p class="tip"><strong>Try these, then tap Play Ciao again:</strong></p><ol><li>iPhone: flip the small switch on the left side so no orange shows.</li><li>Turn the volume up with the side buttons.</li><li>If you opened this from a text or email, open it in Safari or Chrome instead (tap the compass icon).</li><li>Make sure Bluetooth speakers or earbuds are not taking the sound.</li></ol><p><button type="button" class="btn" data-act="sndtest"><strong>Play Ciao again</strong></button></p><p class="tip"><strong>Still silent?</strong> Use the online voice. It needs internet and sends each word you tap to Google to be spoken.</p><p><button type="button" class="btn" data-act="sndonline"><strong>Use the online voice</strong></button></p>';
     return h + '</section>';
   }
   var audioUnlocked = false;
@@ -960,6 +960,19 @@ body { font-size: 1.06rem; line-height: 1.6; }
   }
   function speak(text, rate, onend) {
     if (!("speechSynthesis" in window)) { toast("This browser cannot speak. Use the Google Translate link."); if (onend) onend(); return; }
+    if (S.prefs.onlineVoice) {
+      try {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+        if (window.__ov) { try { window.__ov.pause(); } catch (e) {} }
+        var q = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=it&ttsspeed=" + ((rate || baseRate()) < 0.7 ? "0.3" : "0.8") + "&q=" + encodeURIComponent(text);
+        var oa = new Audio(q); window.__ov = oa; var od = false;
+        var ofin = function () { if (od) return; od = true; if (onend) onend(); };
+        oa.onended = ofin;
+        oa.onerror = function () { toast("The online voice did not load. Check your internet connection."); ofin(); };
+        var opr = oa.play(); if (opr && opr.catch) opr.catch(function () { toast("The online voice could not play. Tap again."); ofin(); });
+      } catch (e) { if (onend) onend(); }
+      return;
+    }
     try {
       unlockAudio();
       var ss = window.speechSynthesis;
@@ -2354,6 +2367,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
       case "goback": window.location.hash = "#" + (prevView && prevView !== view ? prevView : "today"); break;
       case "rdlist": rdState.kind = ""; rdState.done = false; render(); window.scrollTo(0, 0); break;
       case "sndtest": speak("Ciao", 0.8); sndStage = "asked"; setTimeout(render, 900); break;
+      case "sndonline": S.prefs.onlineVoice = true; persist(); sndStage = ""; speak("Ciao", 0.8); setTimeout(function () { sndStage = "asked"; render(); }, 900); break;
       case "sndyes": S.prefs.soundOk = true; persist(); render(); break;
       case "sndno": sndStage = "help"; render(); break;
       case "rdhear": if (rdState.cur) speak(rdState.cur[0], baseRate()); break;
@@ -3949,3 +3963,4 @@ body { font-size: 1.06rem; line-height: 1.6; }
 </script>
 </body>
 </html>
+ktop 
