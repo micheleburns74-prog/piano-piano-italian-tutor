@@ -1619,7 +1619,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var h2 = '<section class="panel">' + navH + '</section><section class="pagehead"><h1 lang="it">' + esc(c.it) + '</h1><p class="ph">' + phHTML(c.ph) + '</p><p class="lede">' + esc(c.en) + '</p></section>';
     h2 += '<section class="panel"><h2>Step ' + (s + 1) + " of " + PZ_STEPS.length + ": " + esc(PZ_STEPS[s]) + "</h2>";
     if (s === 0) {
-      h2 += '<div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"', "primary") + btn("Slow", "slow", ' data-id="' + c.id + '"') + '</div><p><a class="link" href="https://translate.google.com/?sl=it&tl=en&op=translate&text=' + encodeURIComponent(c.it) + '" target="_blank" rel="noopener">Hear it on Google Translate (no sign-up)</a>' + (c.it.indexOf(" ") < 0 ? ' &middot; <a class="link" href="https://en.wiktionary.org/wiki/' + encodeURIComponent(c.it.toLowerCase()) + '#Italian" target="_blank" rel="noopener">Real voice, if there is one</a>' : "") + '</p>';
+      h2 += '<div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"', "primary") + btn("Slow", "slow", ' data-id="' + c.id + '"') + '</div><p><a class="link" href="https://translate.google.com/?sl=it&tl=en&op=translate&text=' + encodeURIComponent(c.it) + '" target="_blank" rel="noopener">Hear it on Google Translate (no sign-up)</a>' + (c.it.indexOf(" ") < 0 ? ' &middot; <a class="link" href="https://en.wiktionary.org/wiki/' + encodeURIComponent(c.it.toLowerCase()) + '#Italian" target="_blank" rel="noopener">Real voice, if there is one</a>' : "") + '</p><p class="tip">Hard to tell it apart from another word? <a class="link" href="#pairs">Train your ear first (2 minutes)</a>.</p>';
     } else if (s === 1) {
       if (n > 1) h2 += '<p class="tip" id="echoMsg" role="status" aria-live="polite">Press Echo on a piece. I say it, listen, and keep score.</p><p class="hint" id="echoDiag"></p><div class="audio">' + btn("Stop", "echostop", "") + '</div><ul class="rows">' + steps.map(function (tx) {
         return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Echo", "echo", ' data-t="' + esc(tx) + '" data-n="3"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
@@ -1711,7 +1711,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     }
     var heroLean = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>" + (S.sessions.length ? "Today" : "Welcome to Piano Piano") + "</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button></div>' + weekDotsHTML() + "</section>";
     var rdn = rdDueCount(), wrn = wrDueCount();
-    var quick5 = '<section class="panel"><h2>Only have 5 minutes?</h2><p class="tip">Pick one. Each takes about 2 to 3 minutes. Stop whenever you like.</p><div class="row"><a class="btn" href="#read"><strong>Read words</strong>' + (rdn ? " (6 words)" : " (done today)") + '</a><a class="btn" href="#write"><strong>Write words</strong>' + (wrn ? " (5 words)" : " (done today)") + '</a><a class="btn" href="#say"><strong>Say a word</strong></a></div>' + quickLink + "</section>";
+    var quick5 = '<section class="panel"><h2>Only have 5 minutes?</h2><p class="tip">Pick one. Each takes about 2 to 3 minutes. Stop whenever you like.</p><div class="row"><a class="btn" href="#read"><strong>Read words</strong>' + (rdn ? " (6 words)" : " (done today)") + '</a><a class="btn" href="#write"><strong>Write words</strong>' + (wrn ? " (5 words)" : " (done today)") + '</a><a class="btn" href="#say"><strong>Say a word</strong></a><a class="btn" href="#pairs"><strong>Train your ear</strong></a></div>' + quickLink + "</section>";
     return heroLean + quick5 + '<details class="more-opts"><summary>More: today\'s phrases and sound of the week</summary>' + nextGoal + reviewOnly + '<div class="modes">' + modes + "</div>" + weekSoundHTML() + '<p class="note"><a class="link" href="#all">All lessons, from the beginning</a></p>' + more + "</details>";
   }
   function daysSinceActive() {
@@ -1920,9 +1920,29 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     return bits.length ? '<p class="hint">' + bits.join(" · ") + "</p>" : "";
   }
   var PAIR_TEXT = [["Buongiorno", "Buonasera"], ["Buonasera", "Buonanotte"], ["Grazie", "Prego"], ["Per favore", "Prego"], ["A destra", "A sinistra"], ["Scusi", "Prego"], ["Come sta?", "Sto bene, grazie"]];
+  var SOUND_PAIRS = [
+    ["pala", "shovel", "palla", "ball", "Double letters: hold the L a little longer, with a tiny pause before it."],
+    ["caro", "dear", "carro", "cart", "Double R: roll the R longer, two quick taps."],
+    ["pena", "pity", "penna", "pen", "Double N: hold the N a bit longer. Your tongue stays up."],
+    ["sete", "thirst", "sette", "seven", "Double T: stop for a tiny moment before the T."],
+    ["casa", "house", "cassa", "cash register", "Double S: a longer, hissing S. Single S between vowels is softer."],
+    ["nono", "ninth", "nonno", "grandfather", "Double N: hold it longer."],
+    ["ala", "wing", "alla", "to the", "Double L: hold the L longer."],
+    ["capello", "hair", "cappello", "hat", "Double P: close your lips a moment longer before it pops."]
+  ];
+  function soundPairCards() {
+    return SOUND_PAIRS.map(function (x, i) {
+      return [{ id: "sp" + i + "a", it: x[0], en: x[1], tip: x[4] }, { id: "sp" + i + "b", it: x[2], en: x[3], tip: x[4] }];
+    });
+  }
+  function pairVoice(q, text, rate) {
+    var old = voice;
+    if (q && q.v) voice = q.v;
+    try { speak(text, rate); } finally { voice = old; }
+  }
   var pq = null;
   function allPairs() {
-    var out = mixPairs(), open = {};
+    var out = mixPairs().concat(soundPairCards()), open = {};
     unlockedCards().forEach(function (c) { open[c.it] = c; });
     PAIR_TEXT.forEach(function (pp) { if (open[pp[0]] && open[pp[1]]) out.push([open[pp[0]], open[pp[1]]]); });
     return out;
@@ -1931,19 +1951,19 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var ps = shuffle(allPairs().slice());
     if (!ps.length) { toast("Open a few more phrases first."); return; }
     var qs = [];
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < 8; i++) {
       var pr = ps[i % ps.length], ans = Math.random() < 0.5 ? 0 : 1;
-      qs.push({ pair: pr, ans: pr[ans], order: Math.random() < 0.5 ? [0, 1] : [1, 0], picked: "" });
+      qs.push({ pair: pr, ans: pr[ans], order: Math.random() < 0.5 ? [0, 1] : [1, 0], picked: "", v: itVoices.length ? itVoices[i % itVoices.length] : null });
     }
     pq = { qs: qs, i: 0, right: 0, done: false };
     render();
-    speak(qs[0].ans.it, baseRate());
+    pairVoice(qs[0], qs[0].ans.it, baseRate());
   }
   function pairsHTML() {
     var st = S.pairStats || { n: 0, right: 0 };
-    var h = '<section class="plain"><h1>Which one is it?</h1><p class="lede">Some phrases sound alike. You hear one, then pick which one you heard. Take your time, and listen again as often as you like.</p></section>';
+    var h = '<section class="plain"><h1>Train your ear</h1><p class="lede">Some words sound almost the same. You hear one, then pick which one you heard. Different voices say them. Take your time, and listen again as often as you like.</p></section>';
     if (!pq) {
-      return h + '<section class="panel"><p class="lede">' + (st.n ? "So far: " + st.right + " right out of " + st.n + "." : "Six short questions.") + '</p><div><button type="button" class="btn primary big" data-act="pstart">Start</button></div></section>';
+      return h + '<section class="panel"><p class="lede">' + (st.n ? "So far: " + st.right + " right out of " + st.n + "." : "Eight short questions, about 2 minutes.") + '</p><div><button type="button" class="btn primary big" data-act="pstart">Start</button></div></section>';
     }
     if (pq.done) {
       return h + '<section class="panel"><h2>Done</h2><p class="lede">' + pq.right + " of " + pq.qs.length + " right. " + (pq.right >= 5 ? "Your ears are getting sharp." : "Every round trains your ear, so this is good practice.") + '</p><div class="row"><button type="button" class="btn primary" data-act="pstart">Another round</button></div></section>';
@@ -1959,7 +1979,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     h += "</div>";
     if (q.picked) {
       var ok = q.picked === q.ans.id;
-      h += '<p class="lede">' + (ok ? "Yes. " : "Not this time. ") + "That was <b lang=\"it\">" + esc(q.ans.it) + "</b>, " + esc(q.ans.en) + ".</p>" +
+      h += '<p class="lede">' + (ok ? "Yes. " : "Not this time. ") + "That was <b lang=\"it\">" + esc(q.ans.it) + "</b>, " + esc(q.ans.en) + ".</p>" + (q.ans.tip ? '<p class="tip">' + esc(q.ans.tip) + "</p>" : "") +
         '<div class="row"><button type="button" class="btn" data-act="pboth">Hear both slowly</button><button type="button" class="btn primary" data-act="pnext" data-primary>' + (pq.i === pq.qs.length - 1 ? "See result" : "Next") + "</button></div>";
     }
     return h + "</section>";
@@ -2021,7 +2041,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   }
 
   /* ---------- Render and routing ---------- */
-  var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["lists", "My word lists"], ["pairs", "Which one?"]];
+  var PRACTICE_NAV = [["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["lists", "My word lists"], ["pairs", "Train your ear"]];
   function render() {
     applyPersonal();
     try {
@@ -2145,7 +2165,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         break;
       case "weeklysay": stopEcho(); speakEn(weeklyText(weekStats()), null, true); break;
       case "pstart": pairsStart(); break;
-      case "phear": if (pq && !pq.done) speak(pq.qs[pq.i].ans.it, baseRate()); break;
+      case "phear": if (pq && !pq.done) pairVoice(pq.qs[pq.i], pq.qs[pq.i].ans.it, baseRate()); break;
       case "pans":
         if (pq && !pq.done && !pq.qs[pq.i].picked) {
           var pqq = pq.qs[pq.i];
@@ -2164,7 +2184,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         }
         break;
       case "pnext":
-        if (pq) { pq.i++; if (pq.i >= pq.qs.length) { pq.done = true; render(); } else { render(); speak(pq.qs[pq.i].ans.it, baseRate()); } }
+        if (pq) { pq.i++; if (pq.i >= pq.qs.length) { pq.done = true; render(); } else { render(); pairVoice(pq.qs[pq.i], pq.qs[pq.i].ans.it, baseRate()); } }
         break;
       case "practicelist":
         var pr0 = t.getAttribute("data-r"), pids = ratedIds(pr0);
