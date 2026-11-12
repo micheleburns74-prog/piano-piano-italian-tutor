@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "75";
+  var VERSION = "76";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -3198,7 +3198,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     var dg = function (x) { h.diag.push(x); };
     try { r = new SR(); } catch (e) { h.fbBusy = false; refresh(); return; }
     curSR = r;
-    r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = true; r.continuous = false;
+    r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = true; r.continuous = true;
     function finish(why) {
       if (finished) return; finished = true; clearTimeout(wd); dg(why);
       if (curSR === r) curSR = null;
@@ -3217,7 +3217,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     };
     r.onerror = function (e) { var er = (e && e.error) || "error"; dg("error:" + er); if (er !== "no-speech" && er !== "aborted") h.fb = { err: er }; finish("error"); };
     r.onend = function () { finish("end"); };
-    wd = setTimeout(function () { finish("timeout"); }, 8000);
+    wd = setTimeout(function () { finish("timeout"); }, 10000);
     refresh();
     try { r.start(); } catch (e) { dg("startfail"); h.fb = { err: "unavailable" }; finish("startfail"); }
   }
@@ -3227,7 +3227,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     var c = chkCard(h); if (!c || (h === sm && sm.card && sm.card.noCheck)) return "";
     var on = h === sm ? 'data-m="chkon"' : 'data-act="gl" data-g="chkon"';
     if (!S.prefs.check) return '<div class="row"><button type="button" class="btn sm" ' + on + '>Turn on pronunciation check</button></div><p class="note">' + (IS_IOS ? 'On iPhone the check uses Apple’s speech service. Your recording never leaves your phone.' : 'Chrome sends your voice to Google’s speech service to do the check.') + '</p>';
-    if (h.fbBusy) return '<p class="hint" role="status">' + (IS_IOS ? 'Listening. Say the word now.' : 'Checking…') + '</p>';
+    if (h.fbBusy) return '<p class="hint" role="status">' + (IS_IOS ? 'Listening. Take your time, say the word when you are ready.' : 'Checking…') + '</p>';
     var k = key === "w" ? "word" : key, hk = h.fbKey === "w" ? "word" : h.fbKey;
     if (!h.fb || hk !== k) return "";
     var v = fbVerdict(h, k); if (!v) return "";
@@ -3241,7 +3241,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
       if (er === "network") return '<p class="note">The pronunciation check needs an internet connection. Your recording still works.</p>';
       return '<p class="note">The pronunciation check is not working right now. Your recording still works.</p>';
     }
-    if (v.kind === "silent") return '<p class="tip"><strong>The check did not pick up your voice this time.</strong> Tap Check my word, then say the word right away. Your recording still works, so compare it by ear.' + ((IS_IOS && h.diag && h.diag.length) ? ' <small>(Details: ' + esc(h.diag.join(", ")) + ')</small>' : '') + '</p>';
+    if (v.kind === "silent") return '<p class="tip"><strong>The check did not pick up your voice this time.</strong> Tap Check my word, wait for Listening, then say the word. Your recording still works, so compare it by ear.' + ((IS_IOS && h.diag && h.diag.length) ? ' <small>(Details: ' + esc(h.diag.join(", ")) + ')</small>' : '') + '</p>';
     if (v.kind === "heard") return v.tg.piece ? '<p class="tip"><strong>I heard you,</strong> but this short sound is hard for the computer to check. Hear the piece again and try once more.</p>' : '<p class="tip"><strong>I heard you.</strong> The computer could not check this one, and that is not your fault. Tap Play my recording and compare it by ear.</p>';
     if (v.kind === "right") return '<p class="tip"><strong>That sounded right.</strong> I heard <span lang="it">' + esc(v.raw) + "</span>.</p>";
     return '<p class="tip"><strong>Close, not quite yet.</strong> I heard <span lang="it">' + esc(v.raw) + '</span>. Aim for <span lang="it">' + esc(v.tg.text) + "</span>." +
