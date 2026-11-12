@@ -1533,7 +1533,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       if (st.phase === "type") h += '<p><input id="wrin" type="text" class="wrin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the Italian word" placeholder="Type it here"></p><div class="audio"><button type="button" class="btn sm primary" data-act="wrcheck"><strong>Check</strong></button><button type="button" class="btn sm" data-act="wrpeek"><strong>Show me again</strong></button></div>';
       else h += '<div class="audio"><button type="button" class="btn sm primary" data-act="wrnext"><strong>Next &rarr;</strong></button></div>';
     }
-    return h + '<div class="audio"><button type="button" class="btn sm" data-act="wrlist"><strong>Stop</strong></button></div></section>';
+    return h + '<div class="audio"><button type="button" class="btn sm" data-act="wrlist"><strong>Stop for today</strong></button></div></section>';
   }
   function wrFocus() { setTimeout(function () { var i = document.getElementById("wrin"); if (i) i.focus(); }, 30); }
   function wrCheck() {
@@ -1586,7 +1586,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       var good = st.opts[st.picked][0] === c[0];
       h += '<p class="tip" role="status">' + (good ? (tried ? "Yes, you got it. " : "Yes. ") : "Not quite. ") + esc(c[0]) + " means " + esc(c[1]) + '.</p><div class="audio"><button type="button" class="btn sm primary" data-act="rdnext"><strong>Next &rarr;</strong></button></div>';
     }
-    return h + '<div class="audio"><button type="button" class="btn sm" data-act="rdlist"><strong>All lists</strong></button></div></section>';
+    return h + '<div class="audio"><button type="button" class="btn sm" data-act="rdlist"><strong>Stop for today</strong></button></div></section>';
   }
   function sayInit() { if (!S.say || typeof S.say !== "object") S.say = {}; if (!S.hard || typeof S.hard !== "object") S.hard = {}; }
   function sayHTML() {
@@ -1935,6 +1935,11 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       return [{ id: "sp" + i + "a", it: x[0], en: x[1], tip: x[4] }, { id: "sp" + i + "b", it: x[2], en: x[3], tip: x[4] }];
     });
   }
+  function earVoices() {
+    var ok = itVoices.filter(function (v) { return !/grandma|grandpa|rocko|google/i.test(v.name); });
+    ok.sort(function (a, b) { return (/^alice/i.test(a.name) ? 0 : 1) - (/^alice/i.test(b.name) ? 0 : 1); });
+    return ok.length ? ok : itVoices;
+  }
   function pairVoice(q, text, rate) {
     var old = voice;
     if (q && q.v) voice = q.v;
@@ -1953,7 +1958,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var qs = [];
     for (var i = 0; i < 8; i++) {
       var pr = ps[i % ps.length], ans = Math.random() < 0.5 ? 0 : 1;
-      qs.push({ pair: pr, ans: pr[ans], order: Math.random() < 0.5 ? [0, 1] : [1, 0], picked: "", v: itVoices.length ? itVoices[i % itVoices.length] : null });
+      qs.push({ pair: pr, ans: pr[ans], order: Math.random() < 0.5 ? [0, 1] : [1, 0], picked: "", v: earVoices().length ? earVoices()[i % earVoices().length] : null });
     }
     pq = { qs: qs, i: 0, right: 0, done: false };
     render();
@@ -1985,7 +1990,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         '<li><span class="rit" lang="it"><b>' + esc(oth.it) + '</b></span><span class="ren">' + esc(oth.en) + ' (the other word)</span><span class="pact"><button type="button" class="btn sm" data-act="word" data-w="' + esc(oth.it) + '">' + SPK_SM + ' Hear</button></span></li></ul>' + (q.ans.tip ? '<p class="tip">' + esc(q.ans.tip) + "</p>" : "") +
         '<div class="row"><button type="button" class="btn" data-act="pboth">Hear both slowly</button><button type="button" class="btn primary" data-act="pnext" data-primary>' + (pq.i === pq.qs.length - 1 ? "See result" : "Next") + "</button></div>";
     }
-    return h + "</section>";
+    return h + '<div class="audio"><a class="btn sm" href="#today"><strong>Stop for today</strong></a></div></section>';
   }
   function listsHTML() {
     var h = '<section class="plain"><h1>My word lists</h1><p class="lede">Your phrases, sorted by how each one felt the last time you practiced it. Tap Practice these to go over just that group.</p></section>';
