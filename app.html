@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "81";
+  var VERSION = "82";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -3071,7 +3071,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     var again = function () { if (h.re) h.re(); else render(); };
     if (!micOK()) { h.mic = "blocked"; again(); return; }
     h.recs = h.recs || {};
-    killSR(); fbToken++; try { if (recState.sr) { var old = recState.sr; recState.sr = null; old.abort(); } } catch (e) {}
+    try { stopEcho(); } catch (e) {} killSR(); fbToken++; try { if (recState.sr) { var old = recState.sr; recState.sr = null; old.abort(); } } catch (e) {}
     try { window.speechSynthesis.cancel(); } catch (e) {}
     var gumDone = false, gumT = setTimeout(function () { if (gumDone) return; gumDone = true; h.mic = "blocked"; h.recKey = ""; again(); toast("The microphone did not answer. Close other apps using it, then tap Record again."); }, 6000);
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
@@ -3621,14 +3621,13 @@ body { font-size: 1.06rem; line-height: 1.6; }
   function speakEn(text, onend, force) {
     if (!("speechSynthesis" in window) && !useOnline()) { if (onend) onend(); return; }
     if (!force && S.prefs.coach === false) { if (onend) setTimeout(onend, 50); return; }
-    if (useOnline() && !window.__onlineBroken) { onlinePlay(text, S.prefs.coachVoice === "en" ? "en" : "it", 1, onend, function () { window.__onlineBroken = true; speakEn(text, onend, force); }); return; }
+    if (useOnline() && !window.__onlineBroken) { onlinePlay(text, "en", 1, onend, function () { window.__onlineBroken = true; speakEn(text, onend, force); }); return; }
     try {
       var ss = window.speechSynthesis;
       if (ss.speaking || ss.pending) ss.cancel();
       var u = new SpeechSynthesisUtterance(text);
       u.lang = "en-US";
       var ev = enVoice(); if (ev) { u.voice = ev; u.lang = ev.lang; }
-      if (S.prefs.coachVoice !== "en" && voice) { u.voice = voice; u.lang = voice.lang; }
       u.rate = 0.95;
       var fired = false, fin = function () { if (fired) return; fired = true; if (onend) onend(); };
       u.onend = fin; u.onerror = fin;
