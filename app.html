@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "84";
+  var VERSION = "85";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -944,6 +944,12 @@ body { font-size: 1.06rem; line-height: 1.6; }
     voice = v;
   }
   var sndStage = "";
+  function voiceNoteHTML() {
+    if (!voice || !("speechSynthesis" in window)) return "";
+    var male = /^(Luca|Cosimo)/.test(voice.name);
+    if (male) return '<p class="note">Voice in use: ' + esc(voice.name) + ' (a man).</p>';
+    return '<section class="panel"><p class="tip"><strong>Your iPhone is using ' + esc(voice.name) + ', a woman\u2019s voice.</strong> For the man\u2019s voice, Luca: open the iPhone Settings app, then Accessibility, Spoken Content, Voices, Italian, Luca, and tap the download arrow. Then close this page and open it again.</p></section>';
+  }
   function soundCheckHTML() {
     if (S.prefs.soundOk) return "";
     var h = '<section class="panel"><h2>Quick sound check</h2>';
@@ -1263,7 +1269,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
       return '<option value="' + esc(v.name) + '"' + (voice && v.name === voice.name ? " selected" : "") + ">" + esc(v.name) + "</option>";
     }).join("");
     var voiceBlock = itVoices.length
-      ? '<label for="voiceSel">Italian voice</label><select id="voiceSel">' + opts + '</select><p class="note">Your device supplies these voices. Pick the one that sounds clearest to you, then tap Hear a test.</p>'
+      ? voiceNoteHTML() + '<label for="voiceSel">Italian voice</label><select id="voiceSel">' + opts + '</select><p class="note">Your device supplies these voices. Pick the one that sounds clearest to you, then tap Hear a test.</p>'
       : "<p>" + (voicesLoaded
         ? "This device did not list an Italian voice. You can still hear clear Italian with the Google Translate link on any phrase, or add an Italian voice in your device's speech settings."
         : "Looking for voices on this device. If nothing appears, use the Google Translate link on any phrase.") + "</p>";
@@ -1686,7 +1692,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if (!c) {
       var t0 = dayKey();
       var due = CARDS.filter(function (x) { var r = S.say[x.id]; return r && r.due <= t0; });
-      var h = '<section class="pagehead"><h1>Pronounce a word</h1><p class="lede">Pick a word to practice saying out loud.</p></section><section class="panel"><p class="tip"><strong>Today: ' + sayToday() + ' of 3 words.</strong>' + (sayToday() >= 3 ? ' That is enough for today. Rest, and come back tomorrow.' : ' Three is plenty. Stop when you reach 3.') + '</p><div class="audio"><button type="button" class="btn sm primary" data-act="sayvowels"><strong>Start with the vowels</strong></button></div></section>';
+      var h = voiceNoteHTML() + '<section class="pagehead"><h1>Pronounce a word</h1><p class="lede">Pick a word to practice saying out loud.</p></section><section class="panel"><p class="tip"><strong>Today: ' + sayToday() + ' of 3 words.</strong>' + (sayToday() >= 3 ? ' That is enough for today. Rest, and come back tomorrow.' : ' Three is plenty. Stop when you reach 3.') + '</p><div class="audio"><button type="button" class="btn sm primary" data-act="sayvowels"><strong>Start with the vowels</strong></button></div></section>';
       if (Object.keys(S.hard).some(function (k) { return S.hard[k] > 0; })) h += '<section class="panel"><div class="audio"><button type="button" class="btn sm primary" data-act="sayhard"><strong>My hard sounds</strong></button></div></section>';
       if (due.length) h += '<section class="panel"><h2>Practice again today</h2><ul class="rows">' + due.map(function (x) {
         return '<li><span class="rit" lang="it">' + esc(x.it) + '</span><span class="ren">' + esc(x.en) + '</span><span class="pact"><button type="button" class="btn sm primary" data-act="sayword" data-id="' + x.id + '">Practice</button></span></li>';
@@ -1978,7 +1984,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
   }
   function phrasesHTML() {
     var open = unlockedCards().length;
-    var h = '<section class="plain"><h1>Your phrases</h1><p class="lede">' + open + " of " + CARDS.length + " phrases are open. Tap Listen on any of them, any time.</p></section>";
+    var h = voiceNoteHTML() + '<section class="plain"><h1>Your phrases</h1><p class="lede">' + open + " of " + CARDS.length + " phrases are open. Tap Listen on any of them, any time.</p></section>";
     var favIds = Object.keys(S.favs || {}).filter(function (id) { return BYID[id]; });
     if (favIds.length) {
       h += '<section class="set"><h2><span>★</span>My favorites</h2><ul class="plist">' + favIds.map(function (id) {
