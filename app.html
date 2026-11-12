@@ -953,7 +953,17 @@ body { font-size: 1.06rem; line-height: 1.6; }
         u.onerror = fin;
         setTimeout(fin, Math.max(4000, text.length * 160 / (rate || 0.85)));
       }
+      var started = false; u.onstart = function () { started = true; };
+      try { ss.resume(); } catch (e) {}
       if (busy) setTimeout(function () { try { ss.speak(u); } catch (e) {} }, 150); else ss.speak(u);
+      setTimeout(function () {
+        if (started) return;
+        try {
+          ss.cancel(); var u2 = new SpeechSynthesisUtterance(text); u2.lang = "it-IT"; u2.rate = rate || baseRate();
+          u2.onstart = function () { started = true; }; ss.resume(); ss.speak(u2);
+          setTimeout(function () { if (!started) toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); }, 1500);
+        } catch (e) {}
+      }, 1400);
     } catch (e) { toast("The voice did not start. Try the Google Translate link."); if (onend) onend(); }
   }
 
