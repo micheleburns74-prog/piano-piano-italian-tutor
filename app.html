@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "72";
+  var VERSION = "73";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -1245,7 +1245,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     return '<header class="top"><div class="top-in"><div class="mark"><svg class="logo" viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" focusable="false" fill="currentColor"><rect x="1" y="7" width="3" height="6" rx="1.5"/><rect x="7" y="3" width="3" height="14" rx="1.5"/><rect x="13" y="0" width="3" height="20" rx="1.5"/><rect x="19" y="4" width="3" height="12" rx="1.5"/><rect x="25" y="7" width="3" height="6" rx="1.5"/></svg><span class="word">Piano Piano</span><span class="tag">Italian, a little at a time</span></div>' +
       '<nav class="tabs" aria-label="Sections">' + (S.prefs.simple || S.prefs.focus
         ? tab("today", "Today") + '<a href="#more"' + (view !== "today" ? ' aria-current="page"' : "") + ">More</a>"
-        : tab("today", "Today") + tabG(["say", "read", "write", "pairs", "phrases", "listening", "sounds", "lists", "tutor"], "say", "Practice") + tabG(["progress", "sessions", "plan", "lesson"], "progress", "My progress") + tab("settings", "Settings")) + "</nav></div></header>";
+        : tab("today", "Today") + tabG(["say", "read", "write", "pairs", "phrases", "listening", "sounds", "lists"], "say", "Practice") + tabG(["progress", "sessions", "plan", "lesson"], "progress", "My progress") + tab("tutor", "Coach") + tab("settings", "Settings")) + "</nav></div></header>";
   }
 
   function browserCheckHTML() {
@@ -2149,7 +2149,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
   }
 
   /* ---------- Render and routing ---------- */
-  var PRACTICE_NAV = [["say", "Say"], ["read", "Read"], ["write", "Write"], ["pairs", "Train your ear"], ["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["lists", "My word lists"], ["tutor", "Coach"]];
+  var PRACTICE_NAV = [["say", "Say"], ["read", "Read"], ["write", "Write"], ["pairs", "Train your ear"], ["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["lists", "My word lists"]];
   function render() {
     applyPersonal();
     try {
@@ -2161,7 +2161,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if (hd) helpOpen = hd.open;
     var body = view === "phrases" ? phrasesHTML() : view === "progress" ? progressHTML() : view === "tutor" ? tutorHTML() : view === "listening" ? listeningHTML() : view === "plan" ? planHTML() : view === "lesson" ? lessonHTML() : view === "sounds" ? soundsHTML() : view === "all" ? allHTML() : view === "say" ? sayHTML() : view === "read" ? readPageHTML() : view === "write" ? writePageHTML() : view === "lists" ? listsHTML() : view === "pairs" ? pairsHTML() : view === "more" ? moreHTML() : view === "sessions" ? sessionsHTML() : view === "settings" ? settingsHTML() : todayHTML();
     if (view === "listening" && !(dict && !dict.done)) body = subNav(PRACTICE_NAV) + body;
-    else if (view === "phrases" || view === "sounds" || view === "lists" || view === "pairs" || view === "tutor") body = subNav(PRACTICE_NAV) + body;
+    else if (view === "phrases" || view === "sounds" || view === "lists" || view === "pairs") body = subNav(PRACTICE_NAV) + body;
     else if ((view === "say" && !sayId && !sayView) || (view === "read" && !rdState.kind) || (view === "write" && !wrState.cur && !wrState.done)) body = subNav(PRACTICE_NAV) + body;
     else if (view === "progress" || view === "sessions" || view === "plan" || view === "lesson") body = subNav([["progress", "This week"], ["sessions", "Finished sessions"], ["plan", "Lesson plan"]]) + body;
     if ((view === "read" || view === "write" || view === "say" || view === "pairs") && prevView && prevView !== view) {
