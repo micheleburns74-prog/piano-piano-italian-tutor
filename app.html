@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "80";
+  var VERSION = "81";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -952,7 +952,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     else h += '<p class="tip"><strong>Try these, then tap Play Ciao again:</strong></p><ol><li>iPhone: flip the small switch on the left side so no orange shows.</li><li>Turn the volume up with the side buttons.</li><li>If you opened this from a text or email, open it in Safari or Chrome instead (tap the compass icon).</li><li>Make sure Bluetooth speakers or earbuds are not taking the sound.</li></ol><p><button type="button" class="btn" data-act="sndtest"><strong>Play Ciao again</strong></button></p><p class="tip"><strong>Still silent?</strong> Use the online voice. It needs internet and sends each word you tap to Google to be spoken.</p><p><button type="button" class="btn" data-act="sndonline"><strong>Use the online voice</strong></button></p>';
     return h + '</section>';
   }
-  function useOnline() { var o = S.prefs.onlineVoice; return o === true || (o === undefined && IS_IOS); }
+  function useOnline() { var o = S.prefs.onlineVoice; return o === true; }
   function onlinePlay(text, lang, pbrate, onend, onfail) {
     try {
       try { window.speechSynthesis.cancel(); } catch (e) {}
@@ -1011,7 +1011,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
         try {
           ss.cancel(); var u2 = new SpeechSynthesisUtterance(text); u2.lang = "it-IT"; u2.rate = rate || baseRate();
           u2.onstart = function () { started = true; }; ss.resume(); ss.speak(u2);
-          setTimeout(function () { if (!started) toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); }, 1500);
+          setTimeout(function () { if (!started) { if (!window.__onlineBroken) onlinePlay(text, "it", Math.max(0.55, Math.min(1, (rate || baseRate()) * 0.85)), onend, function () { toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); }); else toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); } }, 1500);
         } catch (e) {}
       }, 1400);
     } catch (e) { toast("The voice did not start. Try the Google Translate link."); if (onend) onend(); }
@@ -4046,6 +4046,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     }
   } catch (e) {}
   setTimeout(function () { if (!voicesLoaded) { voicesLoaded = true; if (view === "today" && !sess && !doneEntry) render(); } }, 1500);
+  if (IS_IOS && !S.prefs.ovMig80) { S.prefs.ovMig80 = true; S.prefs.onlineVoice = false; try { persist(); } catch (e) {} }
   if (IS_IOS && !S.prefs.iosOptIn && S.prefs.check) { S.prefs.check = false; try { persist(); } catch (e) {} }
   applyPrefs();
   setInterval(tick, 1000);
