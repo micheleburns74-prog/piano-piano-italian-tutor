@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "74";
+  var VERSION = "75";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -980,6 +980,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     } catch (e) { audioUnlocked = false; }
   }
   function speak(text, rate, onend) {
+    try { killSR(); } catch (e) {}
     if (!("speechSynthesis" in window) && !useOnline()) { toast("This browser cannot speak. Use the Google Translate link."); if (onend) onend(); return; }
     if (useOnline() && !window.__onlineBroken) {
       onlinePlay(text, "it", (rate || baseRate()) < 0.7, onend, function () { window.__onlineBroken = true; speak(text, rate, onend); });
@@ -3067,7 +3068,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     var again = function () { if (h.re) h.re(); else render(); };
     if (!micOK()) { h.mic = "blocked"; again(); return; }
     h.recs = h.recs || {};
-    fbToken++; try { if (recState.sr) { var old = recState.sr; recState.sr = null; old.abort(); } } catch (e) {}
+    killSR(); fbToken++; try { if (recState.sr) { var old = recState.sr; recState.sr = null; old.abort(); } } catch (e) {}
     try { window.speechSynthesis.cancel(); } catch (e) {}
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
       var chunks = [], mr = new MediaRecorder(stream), lv = 0, ac = null;
@@ -3093,8 +3094,8 @@ body { font-size: 1.06rem; line-height: 1.6; }
   function recPlay(key, h) {
     h = h || gl;
     var r = h && h.recs && h.recs[key]; if (!r) return;
-    clearEcho();
-    try { var a = new Audio(r.url); var pr = a.play(); if (pr && pr.catch) pr.catch(function (er) { elog("play failed " + (er && er.name)); toast("Could not play the recording."); }); } catch (e) { elog("play threw"); toast("Could not play the recording."); }
+    clearEcho(); killSR();
+    try { var a = new Audio(r.url); try { a.setAttribute("playsinline", ""); a.volume = 1; } catch (e) {} var pr = a.play(); if (pr && pr.catch) pr.catch(function (er) { elog("play failed " + (er && er.name)); toast("Could not play the recording."); }); } catch (e) { elog("play threw"); toast("Could not play the recording."); }
   }
   var fbToken = 0;
   function modelThenMe(text, playMine) {
@@ -3187,30 +3188,38 @@ body { font-size: 1.06rem; line-height: 1.6; }
     }
     return core;
   }
+  var curSR = null;
+  function killSR() { try { if (curSR) { var o = curSR; curSR = null; o.onend = o.onerror = o.onresult = null; o.abort(); } } catch (e) {} }
   function chkOnly(h) {
     var refresh = function () { if (h.re) h.re(); else if (h === sm) renderSay(); else render(); };
     var c = chkCard(h); if (!c || !SR) return;
-    try { window.speechSynthesis.cancel(); } catch (e) {}
-    h.fb = null; h.fbKey = "word"; h.fbBusy = true; h.peak = 0; var tok = ++fbToken, r;
+    killSR(); try { recStop(); } catch (e) {} try { window.speechSynthesis.cancel(); } catch (e) {}
+    h.fb = null; h.fbKey = "word"; h.fbBusy = true; h.peak = 0; h.diag = []; var tok = ++fbToken, r, finished = false, wd;
+    var dg = function (x) { h.diag.push(x); };
     try { r = new SR(); } catch (e) { h.fbBusy = false; refresh(); return; }
+    curSR = r;
     r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = true; r.continuous = false;
+    function finish(why) {
+      if (finished) return; finished = true; clearTimeout(wd); dg(why);
+      if (curSR === r) curSR = null;
+      try { r.onend = r.onerror = r.onresult = null; r.abort(); } catch (e) {}
+      h.fbBusy = false;
+      if (!h.fb) h.fb = (why === "timeout" && h.diag.length === 1) ? { err: "unavailable" } : { alts: [] };
+      refresh();
+      setTimeout(function () { if (tok === fbToken) { try { fbSay(h); } catch (e) {} } }, 350);
+    }
+    ["start", "audiostart", "soundstart", "speechstart"].forEach(function (n) { r["on" + n] = function () { dg(n); }; });
     r.onresult = function (e) {
-      dg("result");
-      var alts = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript);
+      var alts = [], fin = false;
+      for (var i = 0; i < e.results.length; i++) { if (e.results[i].isFinal) fin = true; for (var j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript); }
       if (alts.length && alts[0]) h.fb = { alts: alts };
+      if (fin || (alts.length && alts[0])) setTimeout(function () { finish("result"); }, fin ? 0 : 900);
     };
-    h.diag = []; var dg = function (x) { h.diag.push(x); };
-    ["start", "audiostart", "soundstart", "speechstart", "speechend", "audioend"].forEach(function (n) { r["on" + n] = function () { dg(n); }; });
-    r.onerror = function (e) { var er = (e && e.error) || "error"; dg("error:" + er); if (er !== "no-speech" && er !== "aborted") h.fb = { err: er }; };
-    r.onend = function () { dg("end"); h.fbBusy = false; if (!h.fb) h.fb = { alts: [] }; refresh(); setTimeout(function () { if (tok === fbToken) { try { fbSay(h); } catch (e) {} } }, 350); };
-    var wd = setTimeout(function () {
-      if (!h.fbBusy || tok !== fbToken) return;
-      try { r.onend = null; r.abort(); } catch (e) {}
-      dg("timeout"); h.fbBusy = false; if (!h.fb) h.fb = { err: "unavailable" }; refresh();
-    }, 9000);
-    var oe = r.onend; r.onend = function () { clearTimeout(wd); oe(); };
+    r.onerror = function (e) { var er = (e && e.error) || "error"; dg("error:" + er); if (er !== "no-speech" && er !== "aborted") h.fb = { err: er }; finish("error"); };
+    r.onend = function () { finish("end"); };
+    wd = setTimeout(function () { finish("timeout"); }, 8000);
     refresh();
-    try { r.start(); } catch (e) { clearTimeout(wd); h.fbBusy = false; h.fb = { err: "unavailable" }; refresh(); }
+    try { r.start(); } catch (e) { dg("startfail"); h.fb = { err: "unavailable" }; finish("startfail"); }
   }
   function fbHTMLCore(h, key) {
     if (key === "piece") return '<p class="note">Listen to the piece, say it, then tap Play my recording and compare by ear.</p>';
