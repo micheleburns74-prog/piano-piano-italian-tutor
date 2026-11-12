@@ -596,6 +596,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
 .tabs a { font-size: 1rem; }
 .audio .btn, .panel .audio .btn { border: 2px solid var(--ink-soft); background: transparent; color: var(--ink); }
 .audio .btn.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.backrow{margin:0 0 .6rem}
 /* Say it page */
 .vrow { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
 .vlip { color: var(--accent, #1f4a3d); flex: 0 0 auto; }
@@ -796,7 +797,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
   var LSKEY = "piano-piano-v1";
   var app = document.getElementById("app");
   var toastEl = document.getElementById("toast");
-  var view = "today", sess = null, doneEntry = null, helpOpen = false, showHome = false;
+  var prevView = "", view = "today", sess = null, doneEntry = null, helpOpen = false, showHome = false;
   var statusText = "Saved on this device";
   var voices = [], itVoices = [], voice = null, voicesLoaded = false;
 
@@ -2094,6 +2095,9 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if (view === "listening" && !(dict && !dict.done)) body = subNav(PRACTICE_NAV) + body;
     else if (view === "phrases" || view === "sounds" || view === "lists" || view === "pairs") body = subNav(PRACTICE_NAV) + body;
     else if (view === "progress" || view === "sessions" || view === "plan" || view === "lesson") body = subNav([["progress", "This week"], ["sessions", "Finished sessions"], ["plan", "Lesson plan"]]) + body;
+    if ((view === "read" || view === "write" || view === "say" || view === "pairs") && prevView && prevView !== view) {
+      body = '<p class="backrow"><button type="button" class="btn sm" data-act="goback"><strong>&larr; Back</strong></button></p>' + body;
+    }
     app.innerHTML = headerHTML() + '<div class="wrap"><main id="main">' + body + '</main><p class="status" id="status">' + esc(statusText) + '</p><footer class="foot">Piano Piano ' + VERSION + ' &middot; <a href="https://micheleburns74-prog.github.io/piano-piano-italian-tutor/#privacy" target="_blank" rel="noopener">Privacy and terms</a> &middot; <a href="https://github.com/micheleburns74-prog/piano-piano-italian-tutor/issues" target="_blank" rel="noopener">Send feedback</a></footer></div>';
     try {
       var nav = app.querySelector(".tabs"), cur = app.querySelector('.tabs a[aria-current="page"]');
@@ -2108,7 +2112,9 @@ body { font-size: 1.06rem; line-height: 1.6; }
   function route() {
     var h = (window.location.hash || "").replace("#", "");
     var okv = { say: 1, read: 1, write: 1, all: 1, lesson: 1, plan: 1, pairs: 1, lists: 1, phrases: 1, tutor: 1, progress: 1, listening: 1, sounds: 1, sessions: 1, settings: 1, more: 1 };
-    view = okv[h] ? h : "today";
+    var nv = okv[h] ? h : "today";
+    if (nv !== view) prevView = view;
+    view = nv;
     if (view !== "listening" && plState.on) plStop(true);
     if (view === "listening" && dict && dict.done) dict = null;
     render();
@@ -2312,6 +2318,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
         markToday(); persist(); render();
       })(); break;
       case "rdnext": rdNext(); render(); window.scrollTo(0, 0); break;
+      case "goback": window.location.hash = "#" + (prevView && prevView !== view ? prevView : "today"); break;
       case "rdlist": rdState.kind = ""; rdState.done = false; render(); window.scrollTo(0, 0); break;
       case "rdhear": if (rdState.cur) speak(rdState.cur[0], baseRate()); break;
       case "sayword": echoTok++; pzStep = 0; sayView = ""; sayId = t.getAttribute("data-id"); if (view === "say") { render(); window.scrollTo(0, 0); } else window.location.hash = "#say"; break;
