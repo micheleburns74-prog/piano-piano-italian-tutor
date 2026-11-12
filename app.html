@@ -1231,7 +1231,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function weekDotsHTML() {
     var t = dayKey(), on = activeDay(t), n = 0, i;
     for (i = 6; i >= 0; i--) if (activeDay(addDays(t, -i))) n++;
-    return '<p class="tip"><strong>' + (on ? "Today: practiced. Well done." : "Today: not yet. Even 2 minutes counts.") + "</strong></p><p class=\"hint\">" + (n ? pl(n, "day") + " practiced in the last 7 days." : "Your practice days will show here.") + "</p>";
+    return '<p class="tip"><strong>' + (on ? "Today: practiced. Well done." : "Today: not yet. Try a 5 minute practice below.") + "</strong></p><p class=\"hint\">" + (n ? pl(n, "day") + " practiced in the last 7 days." : "Your practice days will show here.") + "</p>";
   }
   function whereWasI() {
     var last = S.sessions[S.sessions.length - 1];
@@ -1708,7 +1708,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     }
     var heroLean = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>" + (S.sessions.length ? "Today" : "Welcome to Piano Piano") + "</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button></div>' + weekDotsHTML() + "</section>";
     var rdn = rdDueCount(), wrn = wrDueCount();
-    var quick5 = '<section class="panel"><h2>Only have 5 minutes?</h2><p class="tip">Pick one. Each takes about 2 to 3 minutes. Stop whenever you like.</p><div class="row"><a class="btn" href="#read"><strong>Read words</strong>' + (rdn ? " (6 words)" : " (done today)") + '</a><a class="btn" href="#write"><strong>Write words</strong>' + (wrn ? " (5 words)" : " (done today)") + '</a><a class="btn" href="#say"><strong>Say a word</strong></a><a class="btn" href="#pairs"><strong>Train your ear</strong></a></div>' + quickLink + "</section>";
+    var quick5 = '<section class="panel"><h2>Only have 5 minutes?</h2><p class="tip">Pick one. Each takes 5 minutes or less. Stop whenever you like.</p><div class="row"><a class="btn" href="#read"><strong>Read words</strong>' + (rdn ? " (6 words)" : " (done today)") + '</a><a class="btn" href="#write"><strong>Write words</strong>' + (wrn ? " (5 words)" : " (done today)") + '</a><a class="btn" href="#say"><strong>Say a word</strong></a><a class="btn" href="#pairs"><strong>Train your ear</strong></a></div>' + quickLink + "</section>";
     return heroLean + quick5 + '<details class="more-opts"><summary>More: today\'s phrases and sound of the week</summary>' + nextGoal + reviewOnly + '<div class="modes">' + modes + "</div>" + weekSoundHTML() + '<p class="note"><a class="link" href="#all">All lessons, from the beginning</a></p>' + more + "</details>";
   }
   function daysSinceActive() {
