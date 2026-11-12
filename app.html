@@ -1078,9 +1078,10 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function dayRec(k) {
     k = k || dayKey();
     var r = S.days[k] || (S.days[k] = {});
-    ["said", "rated", "dictN", "dictOk", "typeN", "typeOk", "sounds", "heard"].forEach(function (f) { if (typeof r[f] !== "number") r[f] = 0; });
+    ["said", "rated", "dictN", "dictOk", "typeN", "typeOk", "sounds", "heard", "other"].forEach(function (f) { if (typeof r[f] !== "number") r[f] = 0; });
     return r;
   }
+  function markToday() { try { dayRec().other++; } catch (e) {} }
   function totalSaid() {
     var n = 0;
     Object.keys(S.days).forEach(function (k) { n += (S.days[k].said || 0); });
@@ -1089,7 +1090,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function daysPracticed() {
     var u = {};
     S.sessions.forEach(function (e) { u[e.day] = 1; });
-    Object.keys(S.days).forEach(function (k) { var r = S.days[k]; if ((r.said || 0) + (r.rated || 0) + (r.dictN || 0) + (r.typeN || 0) + (r.sounds || 0) + (r.heard || 0) > 0) u[k] = 1; });
+    Object.keys(S.days).forEach(function (k) { var r = S.days[k]; if ((r.said || 0) + (r.rated || 0) + (r.dictN || 0) + (r.typeN || 0) + (r.sounds || 0) + (r.heard || 0) + (r.other || 0) > 0) u[k] = 1; });
     return Object.keys(u).length;
   }
   function strongCount() {
@@ -1225,7 +1226,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function activeDay(k) {
     if (S.sessions.some(function (e) { return e.day === k; })) return true;
     var r = S.days[k]; if (!r) return false;
-    return ((r.said || 0) + (r.rated || 0) + (r.dictN || 0) + (r.typeN || 0) + (r.sounds || 0) + (r.heard || 0)) > 0;
+    return ((r.said || 0) + (r.rated || 0) + (r.dictN || 0) + (r.typeN || 0) + (r.sounds || 0) + (r.heard || 0) + (r.other || 0)) > 0;
   }
   function weekDotsHTML() {
     var names = ["S", "M", "T", "W", "T", "F", "S"], out = "", n = 0, i, k, p;
@@ -1426,7 +1427,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function sayFinish(id, v) {
     sayInit();
     var c = BYID[id], t = dayKey(), r = S.say[id] || (S.say[id] = { n: 0, due: t, hard: false });
-    r.n++; r.last = t;
+    r.n++; r.last = t; markToday();
     if (v === "hard") {
       r.hard = true; r.due = addDays(t, 1);
       soundKeys(c).forEach(function (k) { S.hard[k] = (S.hard[k] || 0) + 1; });
@@ -1545,7 +1546,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       if (!st.wrong) { st.first++; wrGrade(w, "first"); } else wrGrade(w, "second");
     } else if (!st.wrong) { st.wrong = 1; st.msg = "Not quite. Here is the first letter. Try once more."; }
     else { st.phase = "reveal"; st.msg = "Not yet. It is " + w + ". It will come back tomorrow."; st.q.push(c); wrGrade(w, "miss"); }
-    persist(); render(); if (st.phase === "type") wrFocus();
+    markToday(); persist(); render(); if (st.phase === "type") wrFocus();
   }
   if (document.addEventListener) document.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target && e.target.id === "wrin") { e.preventDefault(); wrCheck(); } });
   var rdState = { kind: "", q: [], cur: null, picked: -1, wrong: [], opts: [], first: 0, total: 0, missed: {}, done: false };
@@ -1717,7 +1718,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function daysSinceActive() {
     var last = "";
     S.sessions.forEach(function (e) { if (e.day > last) last = e.day; });
-    Object.keys(S.days).forEach(function (k) { var r = dayRec(k); if (r.said + r.rated + r.dictN + r.typeN + r.sounds + r.heard > 0 && k > last) last = k; });
+    Object.keys(S.days).forEach(function (k) { var r = dayRec(k); if (r.said + r.rated + r.dictN + r.typeN + r.sounds + r.heard + r.other > 0 && k > last) last = k; });
     if (!last) return -1;
     var p = last.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]), n = new Date();
     n = new Date(n.getFullYear(), n.getMonth(), n.getDate());
@@ -2031,7 +2032,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function activityLogHTML() {
     var keys = Object.keys(S.days).filter(function (k) {
       var r = dayRec(k);
-      return r.said + r.rated + r.dictN + r.typeN + r.sounds + r.heard > 0;
+      return r.said + r.rated + r.dictN + r.typeN + r.sounds + r.heard + r.other > 0;
     }).sort().reverse();
     var h = '<section class="plain"><h2>Practice log</h2><p class="note">Everything you do on the page, day by day. This includes listening rounds, typing rounds, and sound drills.</p>';
     if (!keys.length) return h + '<p class="lede">Nothing yet. Your first practice will show up here.</p></section>';
@@ -2043,6 +2044,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
       if (r.typeN) parts.push("typing " + r.typeOk + " of " + r.typeN + " right");
       if (r.sounds) parts.push(pl(r.sounds, "sound drill"));
       if (r.heard) parts.push("heard " + pl(r.heard, "phrase") + " in the playlist");
+      if (r.other) parts.push("Read, Write, Say or ear practice: " + r.other);
       return '<li><span class="rit">' + esc(fmtDay(k)) + '</span><span class="ren">' + esc(parts.join(", ")) + "</span></li>";
     }).join("") + "</ul></section>";
     return h;
@@ -2181,7 +2183,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
           S.pairStats = S.pairStats || { n: 0, right: 0 };
           S.pairStats.n++;
           if (id === pqq.ans.id) { pq.right++; S.pairStats.right++; }
-          persist(); render();
+          markToday(); persist(); render();
         }
         break;
       case "pboth":
@@ -2278,7 +2280,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
         if (good) { st.picked = i; if (!st.wrong.length) { st.first++; rdGrade(k, "first"); } else rdGrade(k, "second"); }
         else if (!st.wrong.length) { st.wrong.push(i); st.missed[k] = 1; }
         else { st.wrong.push(i); st.picked = i; st.q.push(st.cur); rdGrade(k, "miss"); }
-        persist(); render();
+        markToday(); persist(); render();
       })(); break;
       case "rdnext": rdNext(); render(); window.scrollTo(0, 0); break;
       case "rdlist": rdState.kind = ""; rdState.done = false; render(); window.scrollTo(0, 0); break;
@@ -3277,7 +3279,7 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
   function winSum(keys, f) { var n = 0; keys.forEach(function (k) { if (S.days[k]) n += (S.days[k][f] || 0); }); return n; }
   function winDays(keys) {
     var n = 0;
-    keys.forEach(function (k) { var r = S.days[k]; if (r && (r.said || 0) + (r.rated || 0) + (r.dictN || 0) + (r.typeN || 0) + (r.sounds || 0) + (r.heard || 0) > 0) n++; });
+    keys.forEach(function (k) { var r = S.days[k]; if (r && (r.said || 0) + (r.rated || 0) + (r.dictN || 0) + (r.typeN || 0) + (r.sounds || 0) + (r.heard || 0) + (r.other || 0) > 0) n++; });
     return n;
   }
   function sumAll(f) { var n = 0; Object.keys(S.days).forEach(function (k) { n += (S.days[k][f] || 0); }); return n; }
