@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "67";
+  var VERSION = "68";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -2251,6 +2251,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     else if (m === "recplay") recPlay("w", sm);
     else if (m === "cmp") { var cc = sm.card || BYID[sm.id]; if (cc) modelThenMe(cc.it, function () { recPlay("w", sm); }); }
     else if (m === "chkon") { S.prefs.check = true; persist(); renderSay(); }
+    else if (m === "chkonly") chkOnly(sm);
     else if (m === "hear" && (sm.card || BYID[id])) speak((sm.card || BYID[id]).it, baseRate());
     else if (m === "word") { stopEcho(); speak(t.getAttribute("data-t"), 0.6); }
     else if (m === "whole" && BYID[id]) { stopEcho(); speak(BYID[id].it, 0.65); }
@@ -3031,6 +3032,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if (g === "said") { gl.log.said++; var sc = S.cards[gl.id] || (S.cards[gl.id] = { box: 0, due: "", seen: 0 }); sc.said = (sc.said || 0) + 1; dayRec().said++; persist(); toast("Good. Counted."); return; }
     if (g === "check") { openSay(gl.id); return; }
     if (g === "chkon") { S.prefs.check = true; persist(); render(); return; }
+    if (g === "chkonly") { chkOnly(gl); return; }
     if (g === "rec") { recStart(t.getAttribute("data-key")); return; }
     if (g === "recstop") { recStop(); return; }
     if (g === "recplay") { recPlay(t.getAttribute("data-key")); return; }
@@ -3103,7 +3105,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     to = setTimeout(function () { elog("cmp: model timeout"); go(); }, 1500 + text.length * 220);
   }
   var IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  var SR = IS_IOS ? null : (window.SpeechRecognition || window.webkitSpeechRecognition);
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   function nrm(x) { return String(x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, "").replace(/\s+/g, " ").trim(); }
   function lev(a, b) {
     var p = [], i, j; for (j = 0; j <= b.length; j++) p[j] = j;
@@ -3112,7 +3114,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
   }
   function chkCard(h) { return h === sm ? (sm.card || BYID[sm.id]) : (gl ? BYID[gl.id] : null); }
   function chkStart(h, key, again) {
-    if (!S.prefs.check || !SR || (key !== "w" && key !== "word") || !chkCard(h) || (h === sm && sm.card && sm.card.noCheck)) return;
+    if (IS_IOS || !S.prefs.check || !SR || (key !== "w" && key !== "word") || !chkCard(h) || (h === sm && sm.card && sm.card.noCheck)) return;
     h.fb = null; h.fbBusy = true; h.fbKey = key;
     var tries = 0, everBegan = false, myTok = fbToken;
     function recording() { return !!(recState.rec && recState.rec.state === "recording"); }
@@ -3178,6 +3180,30 @@ body { font-size: 1.06rem; line-height: 1.6; }
     }, true);
   }
   function fbHTML(h, key) {
+    var core = fbHTMLCore(h, key);
+    if (IS_IOS && SR && S.prefs.check && (key === "w" || key === "word") && chkCard(h) && !(h === sm && sm.card && sm.card.noCheck) && !h.fbBusy) {
+      var at = h === sm ? 'data-m="chkonly"' : 'data-act="gl" data-g="chkonly"';
+      return '<div class="row"><button type="button" class="btn" ' + at + '><strong>Check my word</strong></button></div><p class="hint">On iPhone the check works on its own. Tap it, then say the word. It does not record you.</p>' + core;
+    }
+    return core;
+  }
+  function chkOnly(h) {
+    var refresh = function () { if (h.re) h.re(); else if (h === sm) renderSay(); else render(); };
+    var c = chkCard(h); if (!c || !SR) return;
+    try { window.speechSynthesis.cancel(); } catch (e) {}
+    h.fb = null; h.fbKey = "word"; h.fbBusy = true; h.peak = 0; var tok = ++fbToken, r;
+    try { r = new SR(); } catch (e) { h.fbBusy = false; refresh(); return; }
+    r.lang = "it-IT"; r.maxAlternatives = 5; r.interimResults = false; r.continuous = false;
+    r.onresult = function (e) {
+      var alts = []; for (var i = 0; i < e.results.length; i++) for (var j = 0; j < e.results[i].length; j++) alts.push(e.results[i][j].transcript);
+      if (alts.length && alts[0]) h.fb = { alts: alts };
+    };
+    r.onerror = function (e) { var er = (e && e.error) || "error"; if (er !== "no-speech" && er !== "aborted") h.fb = { err: er }; };
+    r.onend = function () { h.fbBusy = false; if (!h.fb) h.fb = { alts: [] }; refresh(); setTimeout(function () { if (tok === fbToken) { try { fbSay(h); } catch (e) {} } }, 350); };
+    refresh();
+    try { r.start(); } catch (e) { h.fbBusy = false; h.fb = { err: "unavailable" }; refresh(); }
+  }
+  function fbHTMLCore(h, key) {
     if (key === "piece") return '<p class="note">Listen to the piece, say it, then tap Play my recording and compare by ear.</p>';
     if ((key !== "w" && key !== "word") || !SR) return "";
     var c = chkCard(h); if (!c || (h === sm && sm.card && sm.card.noCheck)) return "";
@@ -3190,6 +3216,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if (v.kind === "err") {
       var er = v.err;
       if (er === "not-allowed") return '<p class="note">The pronunciation check could not use the microphone. Allow it in the address bar and try again.</p>';
+      if (IS_IOS && (er === "unavailable" || er === "service-not-allowed")) return '<p class="note">To check words on iPhone, turn on Dictation: Settings, General, Keyboard, Enable Dictation. Then try again.</p>';
       if (er === "unavailable" || er === "service-not-allowed") return '<p class="note">' + (location.protocol === "file:" ? 'Chrome does not run the pronunciation check on a file opened from your computer. Open Piano Piano from its web link instead.' : 'The pronunciation check could not start. Check that the microphone is allowed for this page, then try again.') + '</p>';
       if (er === "network") return '<p class="note">The pronunciation check needs an internet connection. Your recording still works.</p>';
       return '<p class="note">The pronunciation check is not working right now. Your recording still works.</p>';
