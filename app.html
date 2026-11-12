@@ -719,7 +719,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "1.1";
+  var VERSION = "64";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -2160,7 +2160,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if ((view === "read" || view === "write" || view === "say" || view === "pairs") && prevView && prevView !== view) {
       body = '<p class="backrow"><button type="button" class="btn sm" data-act="goback"><strong>&larr; Back</strong></button></p>' + body;
     }
-    app.innerHTML = headerHTML() + '<div class="wrap"><main id="main">' + body + '</main><p class="status" id="status">' + esc(statusText) + '</p><footer class="foot">Piano Piano ' + VERSION + ' &middot; <a href="https://micheleburns74-prog.github.io/piano-piano-italian-tutor/#privacy" target="_blank" rel="noopener">Privacy and terms</a> &middot; <a href="https://github.com/micheleburns74-prog/piano-piano-italian-tutor/issues" target="_blank" rel="noopener">Send feedback</a></footer></div>';
+    app.innerHTML = headerHTML() + '<div class="wrap"><main id="main">' + body + '</main><p class="status" id="status">' + esc(statusText) + '</p><footer class="foot">Piano Piano, version ' + VERSION + ' &middot; <a href="https://micheleburns74-prog.github.io/piano-piano-italian-tutor/#privacy" target="_blank" rel="noopener">Privacy and terms</a> &middot; <a href="https://github.com/micheleburns74-prog/piano-piano-italian-tutor/issues" target="_blank" rel="noopener">Send feedback</a></footer></div>';
     try {
       var nav = app.querySelector(".tabs"), cur = app.querySelector('.tabs a[aria-current="page"]');
       if (nav && cur) nav.scrollLeft = cur.offsetLeft - (nav.clientWidth - cur.offsetWidth) / 2;
@@ -3980,7 +3980,22 @@ body { font-size: 1.06rem; line-height: 1.6; }
   setTimeout(function () { if (!voicesLoaded) { voicesLoaded = true; if (view === "today" && !sess && !doneEntry) render(); } }, 1500);
   applyPrefs();
   setInterval(tick, 1000);
+  function checkUpdate() {
+    try {
+      if (!/^https?:$/.test(location.protocol)) return;
+      fetch(location.pathname + "?nc=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
+        var m = t.match(/var VERSION = "(\d+)"/);
+        if (!m || !(Number(m[1]) > Number(VERSION)) || document.getElementById("updbar")) return;
+        var d = document.createElement("div"); d.id = "updbar"; d.setAttribute("role", "status");
+        d.style.cssText = "background:#E8F0F8;color:#202D3B;border-bottom:2px solid #244B76;padding:12px 16px;font-weight:600;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+        d.innerHTML = '<span>A newer version of Piano Piano is ready.</span><button type="button" style="min-height:44px;padding:0 18px;border-radius:10px;border:0;background:#244B76;color:#fff;font-weight:700;font-size:1rem">Update now</button>';
+        d.querySelector("button").addEventListener("click", function () { window.location.replace(location.pathname + "?v=" + m[1] + location.hash); });
+        document.body.insertBefore(d, document.body.firstChild);
+      }).catch(function () {});
+    } catch (e) {}
+  }
   route();
+  checkUpdate();
   initCloud();
   initTutor();
 })();
