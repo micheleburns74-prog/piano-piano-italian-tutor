@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "83";
+  var VERSION = "84";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -1277,9 +1277,6 @@ body { font-size: 1.06rem; line-height: 1.6; }
       '<label class="check"><input type="checkbox" id="autoSel"' + (S.auto ? " checked" : "") + "> Play each phrase automatically</label>" +
       '<label class="check"><input type="checkbox" id="chkSel"' + (S.prefs.check ? " checked" : "") + (SR ? "" : " disabled") + "> Check my pronunciation when I record (" + (IS_IOS ? "your iPhone uses Apple\u2019s speech service" : "Chrome sends your voice to Google\u2019s speech service") + ")</label>" +
       '<label class="check"><input type="checkbox" id="ovSel"' + (useOnline() ? " checked" : "") + '> Use the online Italian voice (needs internet. Each word you tap is sent to Google to be spoken. Good if the built-in voice is silent.)</label>' +
-      '<label for="cvSel">Voice for spoken coaching</label><select id="cvSel">' + opt("it", "Italian woman speaking English (Italian accent)", S.prefs.coachVoice || "it") + opt("en", "English voice", S.prefs.coachVoice || "it") + "</select>" +
-      '<label class="check"><input type="checkbox" id="coachSel"' + (S.prefs.coach === false ? "" : " checked") + "> Spoken coaching lines in English</label>" +
-      '<p class="note">Short spoken lines like "Almost. Listen to this word." Turn this off to hear only the Italian.</p>' +
       '<p class="note">When this is on, a phrase is read aloud as soon as it appears. Turn it off if you would rather tap Listen yourself.</p>' +
       '<div><button type="button" class="btn sm" data-act="test">' + SPK + " Hear a test</button></div></section>" +
       '<h2 class="grp">Looks</h2><section class="panel hbody">' + comfortHTML() + "</section>" +
@@ -3595,7 +3592,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     var w = weekStats();
     return '<section class="panel"><h2>Weekly check-in</h2>' + weekDotsHTML() + '<ul class="facts" aria-label="This week"><li><b>' + w.sessions + "</b><span>sessions</span></li><li><b>" + w.said + "</b><span>times spoken aloud</span></li><li><b>" + w.good + "</b><span>words I got</span></li><li><b>" + (w.almost + w.not) + "</b><span>still to practice</span></li></ul>" +
       (w.hard ? '<p class="lede"><strong>Focus this week:</strong> <span lang="it">' + esc(w.hard.it) + "</span> (" + esc(w.hard.en) + '). Try pronunciation help and the repeat button on it.</p><div class="row"><button type="button" class="btn" data-act="listen" data-id="' + w.hard.id + '">' + SPK + ' Listen</button><a class="btn" href="#lists">See my word lists</a></div>' : '<p class="note">Your focus phrase appears here once you have rated a few phrases.</p>') +
-      '<div class="row"><button type="button" class="btn" data-act="weeklysay">Hear my check-in</button></div></section>';
+      '</section>';
   }
   function factsHTML() {
     return '<ul class="facts" aria-label="Your progress"><li><b>' + daysPracticed() + "</b><span>days practiced</span></li><li><b>" + S.sessions.length + "</b><span>sessions finished</span></li><li><b>" + totalSaid() + "</b><span>times spoken aloud</span></li><li><b>" + knownCount() + "</b><span>phrases you know</span></li></ul>";
