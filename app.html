@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
 <title>Piano Piano</title>
 <meta name="description" content="Piano Piano: a gentle, one-word-at-a-time Italian tutor. Listen, read, record yourself and play it back.">
 <meta name="theme-color" content="#fbfaf6">
@@ -719,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "65";
+  var VERSION = "66";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -951,6 +952,20 @@ body { font-size: 1.06rem; line-height: 1.6; }
     else h += '<p class="tip"><strong>Try these, then tap Play Ciao again:</strong></p><ol><li>iPhone: flip the small switch on the left side so no orange shows.</li><li>Turn the volume up with the side buttons.</li><li>If you opened this from a text or email, open it in Safari or Chrome instead (tap the compass icon).</li><li>Make sure Bluetooth speakers or earbuds are not taking the sound.</li></ol><p><button type="button" class="btn" data-act="sndtest"><strong>Play Ciao again</strong></button></p><p class="tip"><strong>Still silent?</strong> Use the online voice. It needs internet and sends each word you tap to Google to be spoken.</p><p><button type="button" class="btn" data-act="sndonline"><strong>Use the online voice</strong></button></p>';
     return h + '</section>';
   }
+  function useOnline() { var o = S.prefs.onlineVoice; return o === true || (o === undefined && IS_IOS); }
+  function onlinePlay(text, lang, slow, onend, onfail) {
+    try {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+      if (window.__ov) { try { window.__ov.pause(); } catch (e) {} }
+      var q = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=" + lang + (slow ? "&ttsspeed=0.3" : "") + "&q=" + encodeURIComponent(text);
+      var oa = new Audio(q), od = false; window.__ov = oa;
+      var fin = function () { if (od) return; od = true; if (onend) onend(); };
+      var fail = function () { if (od) return; od = true; if (onfail) onfail(); else if (onend) onend(); };
+      oa.onended = fin;
+      oa.onerror = fail;
+      var pr = oa.play(); if (pr && pr.catch) pr.catch(function () { fail(); });
+    } catch (e) { if (onfail) onfail(); else if (onend) onend(); }
+  }
   var audioUnlocked = false;
   function unlockAudio() {
     if (audioUnlocked) return; audioUnlocked = true;
@@ -965,18 +980,9 @@ body { font-size: 1.06rem; line-height: 1.6; }
     } catch (e) { audioUnlocked = false; }
   }
   function speak(text, rate, onend) {
-    if (!("speechSynthesis" in window)) { toast("This browser cannot speak. Use the Google Translate link."); if (onend) onend(); return; }
-    if (S.prefs.onlineVoice) {
-      try {
-        try { window.speechSynthesis.cancel(); } catch (e) {}
-        if (window.__ov) { try { window.__ov.pause(); } catch (e) {} }
-        var q = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=it&ttsspeed=" + ((rate || baseRate()) < 0.7 ? "0.3" : "0.8") + "&q=" + encodeURIComponent(text);
-        var oa = new Audio(q); window.__ov = oa; var od = false;
-        var ofin = function () { if (od) return; od = true; if (onend) onend(); };
-        oa.onended = ofin;
-        oa.onerror = function () { toast("The online voice did not load. Check your internet connection."); ofin(); };
-        var opr = oa.play(); if (opr && opr.catch) opr.catch(function () { toast("The online voice could not play. Tap again."); ofin(); });
-      } catch (e) { if (onend) onend(); }
+    if (!("speechSynthesis" in window) && !useOnline()) { toast("This browser cannot speak. Use the Google Translate link."); if (onend) onend(); return; }
+    if (useOnline() && !window.__onlineBroken) {
+      onlinePlay(text, "it", (rate || baseRate()) < 0.7, onend, function () { window.__onlineBroken = true; speak(text, rate, onend); });
       return;
     }
     try {
@@ -1268,6 +1274,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
       '<h2 class="grp">Sound</h2><section class="panel hbody"><h2>Voice</h2><p class="note">The page reads Italian aloud using a voice that is built into your phone or computer.</p>' + voiceBlock +
       '<label class="check"><input type="checkbox" id="autoSel"' + (S.auto ? " checked" : "") + "> Play each phrase automatically</label>" +
       '<label class="check"><input type="checkbox" id="chkSel"' + (S.prefs.check ? " checked" : "") + (SR ? "" : " disabled") + "> Check my pronunciation when I record (Chrome sends your voice to Google\u2019s speech service)</label>" +
+      '<label class="check"><input type="checkbox" id="ovSel"' + (useOnline() ? " checked" : "") + '> Use the online Italian voice (needs internet. Each word you tap is sent to Google to be spoken. Good if the built-in voice is silent.)</label>' +
       '<label for="cvSel">Voice for spoken coaching</label><select id="cvSel">' + opt("it", "Italian woman speaking English (Italian accent)", S.prefs.coachVoice || "it") + opt("en", "English voice", S.prefs.coachVoice || "it") + "</select>" +
       '<label class="check"><input type="checkbox" id="coachSel"' + (S.prefs.coach === false ? "" : " checked") + "> Spoken coaching lines in English</label>" +
       '<p class="note">Short spoken lines like "Almost. Listen to this word." Turn this off to hear only the Italian.</p>' +
@@ -2610,6 +2617,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     else if (id === "rateSel") pr.rate = Number(v) || 0.85;
     else if (id === "coachSel") pr.coach = !!t.checked;
     else if (id === "chkSel") pr.check = !!t.checked;
+    else if (id === "ovSel") { pr.onlineVoice = !!t.checked; window.__onlineBroken = false; }
     else if (id === "cvSel") pr.coachVoice = v === "it" ? "it" : "en";
     else if (id === "perSel") pr.per = Number(v) === 5 ? 5 : 3;
     else if (id === "nameInp") { pr.name = String(v || "").trim().slice(0, 24); applyPersonal(); }
@@ -3552,8 +3560,9 @@ body { font-size: 1.06rem; line-height: 1.6; }
     return list.find(function (v) { return /en[-_]US/i.test(v.lang); }) || list[0] || null;
   }
   function speakEn(text, onend, force) {
-    if (!("speechSynthesis" in window)) { if (onend) onend(); return; }
+    if (!("speechSynthesis" in window) && !useOnline()) { if (onend) onend(); return; }
     if (!force && S.prefs.coach === false) { if (onend) setTimeout(onend, 50); return; }
+    if (useOnline() && !window.__onlineBroken) { onlinePlay(text, S.prefs.coachVoice === "en" ? "en" : "it", false, onend, function () { window.__onlineBroken = true; speakEn(text, onend, force); }); return; }
     try {
       var ss = window.speechSynthesis;
       if (ss.speaking || ss.pending) ss.cancel();
