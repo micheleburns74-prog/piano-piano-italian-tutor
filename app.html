@@ -945,9 +945,23 @@ body { font-size: 1.06rem; line-height: 1.6; }
     else h += '<p class="tip"><strong>Try these, then tap Play Ciao again:</strong></p><ol><li>iPhone: flip the small switch on the left side so no orange shows.</li><li>Turn the volume up with the side buttons.</li><li>If you opened this from a text or email, open it in Safari or Chrome instead (tap the compass icon).</li><li>Make sure Bluetooth speakers or earbuds are not taking the sound.</li></ol><p><button type="button" class="btn" data-act="sndtest"><strong>Play Ciao again</strong></button></p>';
     return h + '</section>';
   }
+  var audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked) return; audioUnlocked = true;
+    try {
+      var n = 800, b = new Uint8Array(44 + n), dv = new DataView(b.buffer);
+      var w = function (o, t) { for (var i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); };
+      w(0, "RIFF"); dv.setUint32(4, 36 + n, true); w(8, "WAVE"); w(12, "fmt "); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+      dv.setUint32(24, 8000, true); dv.setUint32(28, 8000, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); w(36, "data"); dv.setUint32(40, n, true);
+      for (var i = 0; i < n; i++) b[44 + i] = 128;
+      var au = new Audio(URL.createObjectURL(new Blob([b], { type: "audio/wav" })));
+      au.setAttribute("playsinline", ""); var pr = au.play(); if (pr && pr.catch) pr.catch(function () { audioUnlocked = false; });
+    } catch (e) { audioUnlocked = false; }
+  }
   function speak(text, rate, onend) {
     if (!("speechSynthesis" in window)) { toast("This browser cannot speak. Use the Google Translate link."); if (onend) onend(); return; }
     try {
+      unlockAudio();
       var ss = window.speechSynthesis;
       var busy = ss.speaking || ss.pending; if (busy) ss.cancel();
       var u = new SpeechSynthesisUtterance(text);
