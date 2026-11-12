@@ -572,6 +572,14 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
 .rdok { background: #d9eedd !important; border-color: #2f7d46 !important; color: #14391f !important; }
 .rdbad { background: #f6dcd8 !important; border-color: #b3382c !important; color: #5a1a13 !important; }
 
+/* Today time choices */
+.tblock h3 { margin: 22px 0 10px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.tblock .tip { margin: 8px 0 0; }
+.tgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tgrid.one { grid-template-columns: minmax(0, 1fr); }
+.tgrid .btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; width: 100%; padding: 8px 12px; text-align: center; font-size: 0.95rem; box-sizing: border-box; }
+.tgrid .btn strong { font-weight: 700; }
+.tgrid .btn .sub { font-size: 0.8rem; font-weight: 400; color: var(--ink-soft); }
 /* Say it page */
 .vrow { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
 .vlip { color: var(--accent, #1f4a3d); flex: 0 0 auto; }
@@ -1709,11 +1717,15 @@ select, input[type="date"], input[type="time"], input[type="text"], .hbody selec
     var heroLean = '<section class="panel"><p class="greet"><button type="button" class="w" data-act="word" data-w="' + gr + '">' + gr + '</button><span class="date">' + esc(longToday()) + "</span></p><h1>" + (S.sessions.length ? "Today" : "Welcome to Piano Piano") + "</h1><p class=\"lede\">" + esc(msg) + '</p><div><button type="button" class="btn primary big" data-act="' + (rec === "mix" ? "startmix" : "startnew") + '">Start today\'s session</button> <span class="hint">about 10 minutes</span></div>' + weekDotsHTML() + "</section>";
     var rdn = rdDueCount(), wrn = wrDueCount();
     var recAct = rec === "mix" ? "startmix" : "startnew";
-    var quick5 = '<section class="panel"><h2>How much time do you have?</h2><p class="tip">Pick what fits today. Stop whenever you like.</p>' +
-      '<h3 class="mlabel">2 minutes</h3><div class="row"><button type="button" class="btn" data-act="rdstart" data-k="start" data-n="3"><strong>Read 3 words</strong></button><a class="btn" href="#pairs"><strong>Train your ear</strong></a></div>' +
-      '<h3 class="mlabel">5 minutes</h3><div class="row"><a class="btn" href="#read"><strong>Read words</strong>' + (rdn ? " (6 words)" : " (done today)") + '</a><a class="btn" href="#write"><strong>Write words</strong>' + (wrn ? " (5 words)" : " (done today)") + '</a><a class="btn" href="#say"><strong>Say a word</strong></a><a class="btn" href="#pairs"><strong>Train your ear</strong></a></div>' + quickLink +
-      '<h3 class="mlabel">10 minutes</h3><div class="row"><button type="button" class="btn" data-act="' + recAct + '"><strong>Today\'s session</strong> (new phrases and a review)</button></div>' +
-      '<h3 class="mlabel">20 minutes or more</h3><ol class="plan20"><li><a class="link" href="#pairs">Train your ear</a> (2 minutes)</li><li><a class="link" href="#say">Say 3 words</a> (8 minutes)</li><li><a class="link" href="#read">Read words</a> (3 minutes)</li><li><a class="link" href="#write">Write words</a> (3 minutes)</li><li>Then <button type="button" class="link" data-act="' + recAct + '">today\'s session</button></li></ol></section>';
+    var tb = function (label, sub, attrs, isLink) {
+      var inner = "<strong>" + label + "</strong>" + (sub ? '<span class="sub">' + sub + "</span>" : "");
+      return isLink ? '<a class="btn" ' + attrs + ">" + inner + "</a>" : '<button type="button" class="btn" ' + attrs + ">" + inner + "</button>";
+    };
+    var quick5 = '<section class="panel tblock"><h2>How much time do you have?</h2><p class="tip">Pick what fits today. Stop whenever you like.</p>' +
+      '<h3>2 minutes</h3><div class="tgrid">' + tb("Read 3 words", "quick round", 'data-act="rdstart" data-k="start" data-n="3"') + tb("Train your ear", "8 questions", 'href="#pairs"', 1) + "</div>" +
+      '<h3>5 minutes</h3><div class="tgrid">' + tb("Read words", rdn ? "6 words" : "done today", 'href="#read"', 1) + tb("Write words", wrn ? "5 words" : "done today", 'href="#write"', 1) + tb("Say a word", "1 word", 'href="#say"', 1) + tb("Quick phrases", "3 phrases", 'data-act="startquick"') + "</div>" +
+      '<h3>10 minutes</h3><div class="tgrid one">' + tb("Today's session", "new phrases and a review", 'data-act="' + recAct + '"') + "</div>" +
+      '<h3>20 minutes or more</h3><div class="tgrid">' + tb("1. Train your ear", "2 min", 'href="#pairs"', 1) + tb("2. Say 3 words", "8 min", 'href="#say"', 1) + tb("3. Read words", "3 min", 'href="#read"', 1) + tb("4. Write words", "3 min", 'href="#write"', 1) + tb("5. Today's session", "10 min", 'data-act="' + recAct + '"') + "</div></section>";
     return heroLean + quick5 + '<details class="more-opts"><summary>More: today\'s phrases and sound of the week</summary>' + nextGoal + reviewOnly + '<div class="modes">' + modes + "</div>" + weekSoundHTML() + '<p class="note"><a class="link" href="#all">All lessons, from the beginning</a></p>' + more + "</details>";
   }
   function daysSinceActive() {
