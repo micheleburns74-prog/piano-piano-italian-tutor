@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Piano Piano</title></head>
+<body><script>
+fetch("app.html?m=" + Date.now(), { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.text(); }).then(function (t) { document.open(); document.write(t); document.close(); }).catch(function () { location.replace("app.html" + location.hash); });
+</script></body></html>
