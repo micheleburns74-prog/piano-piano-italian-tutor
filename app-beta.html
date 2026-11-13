@@ -722,7 +722,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "101";
+  var VERSION = "102";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -1557,9 +1557,9 @@ body { font-size: 1.06rem; line-height: 1.6; }
   }
   function sayVowelsHTML() {
     var h = '<section class="pagehead"><h1>Start with the vowels</h1><p class="lede">Italian vowels are always the same. Copy the lip shape, hear it, then say it.</p></section>';
-    h += '<section class="panel"><p class="tip" id="echoMsg" role="status" aria-live="polite">Press Echo on a vowel. I will listen.</p><p class="hint" id="echoDiag"></p><div class="audio"><button type="button" class="btn sm" data-act="echostop">Stop</button><button type="button" class="btn sm" data-act="saylist"><strong>All words</strong></button></div></section>';
+    h += '<section class="panel"><p class="tip" id="echoMsg" role="status" aria-live="polite">Press Say it back on a vowel. I say it, then you say it back.</p><p class="hint" id="echoDiag"></p><div class="audio"><button type="button" class="btn sm" data-act="echostop">Stop</button><button type="button" class="btn sm" data-act="saylist"><strong>All words</strong></button></div></section>';
     VOW5.forEach(function (v) {
-      h += '<section class="panel"><div class="vrow"><div class="vlip">' + lipSVG(v) + '</div><div><h2>' + v.l + ' <span class="ren">sounds like "' + v.ph + '"</span></h2><p class="tip">' + esc(v.tip) + '</p></div></div><div class="audio"><button type="button" class="btn sm primary" data-act="speakslow" data-t="' + esc(v.w) + '">' + SPK_SM + ' Hear "' + esc(v.w) + '"</button><button type="button" class="btn sm" data-act="echo" data-t="' + esc(v.w) + '" data-n="3">Echo</button></div></section>';
+      h += '<section class="panel"><div class="vrow"><div class="vlip">' + lipSVG(v) + '</div><div><h2>' + v.l + ' <span class="ren">sounds like "' + v.ph + '"</span></h2><p class="tip">' + esc(v.tip) + '</p></div></div><div class="audio"><button type="button" class="btn sm primary" data-act="speakslow" data-t="' + esc(v.w) + '">' + SPK_SM + ' Hear "' + esc(v.w) + '"</button><button type="button" class="btn sm" data-act="echo" data-t="' + esc(v.w) + '" data-n="3">Say it back</button></div></section>';
     });
     return h;
   }
@@ -1740,12 +1740,12 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if (s === 0) {
       h2 += '<div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"', "primary") + btn("Slow", "slow", ' data-id="' + c.id + '"') + '</div>' + (n > 1 ? stressBoxHTML(sy) + '<p class="tip">Now hear it in pieces. Tap each piece.</p><div class="audio pieces">' + sy.map(function (sl, i) { return '<button type="button" class="btn sm' + (i === st ? " stress" : "") + '" data-act="word" data-w="' + esc(sl.t) + '" lang="it">'  + esc(sl.t) + "</button>"; }).join("") + "</div>" : "") + '<p><a class="link" href="https://translate.google.com/?sl=it&tl=en&op=translate&text=' + encodeURIComponent(c.it) + '" target="_blank" rel="noopener">Hear it on Google Translate (no sign-up)</a>' + (c.it.indexOf(" ") < 0 ? ' &middot; <a class="link" href="https://en.wiktionary.org/wiki/' + encodeURIComponent(c.it.toLowerCase()) + '#Italian" target="_blank" rel="noopener">Real voice, if there is one</a>' : "") + '</p><p class="tip">Hard to tell it apart from another word? <a class="link" href="#pairs">Train your ear first (2 minutes)</a>.</p>';
     } else if (s === 1) {
-      if (n > 1) h2 += '<p class="tip" id="echoMsg" role="status" aria-live="polite">Press Echo on a piece. I say it, listen, and keep score.</p><p class="hint" id="echoDiag"></p><div class="audio">' + btn("Stop", "echostop", "") + '</div><ul class="rows">' + steps.map(function (tx) {
-        return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Echo", "echo", ' data-t="' + esc(tx) + '" data-n="3"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
+      if (n > 1) h2 += '<p class="tip" id="echoMsg" role="status" aria-live="polite">Press Say it back on a piece. I say it, then you say it back, and I check.</p><p class="hint" id="echoDiag"></p><div class="audio">' + btn("Stop", "echostop", "") + '</div><ul class="rows">' + steps.map(function (tx) {
+        return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Say it back", "echo", ' data-t="' + esc(tx) + '" data-n="3"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
       }).join("") + "</ul>";
       else h2 += '<p class="lede">This word is short. Go to the next step.</p>';
     } else if (s === 2) {
-      h2 += '<p class="hint">I say it slowly, then wait while you say it. Three times.</p><div class="audio">' + btn("Echo the whole word", "echo", ' data-t="' + esc(c.it) + '" data-n="3"', "primary") + btn("Stop", "echostop", "") + '</div><p class="tip" id="echoMsg" role="status" aria-live="polite">Ready when you are.</p><p class="hint" id="echoDiag"></p>';
+      h2 += '<p class="hint">I say it slowly, then wait while you say it. Three times.</p><div class="audio">' + btn("Say the whole word back", "echo", ' data-t="' + esc(c.it) + '" data-n="3"', "primary") + btn("Stop", "echostop", "") + '</div><p class="tip" id="echoMsg" role="status" aria-live="polite">Ready when you are.</p><p class="hint" id="echoDiag"></p>';
     } else if (s === 3) {
       h2 += '<div class="audio">' + btn("Record me", "sayopen", ' data-id="' + c.id + '"', "primary") + btn("My first recording", "playfirst", ' data-id="' + c.id + '"') + btn("My latest recording", "playlast", ' data-id="' + c.id + '"') + '</div><p class="hint">Record yourself, then use "Hear the word, then my recording" to compare. Your first and latest recordings stay on this device so you can hear your progress.</p>';
     } else if (s === 4) {
