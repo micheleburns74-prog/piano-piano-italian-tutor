@@ -599,6 +599,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
 .audio .btn, .panel .audio .btn { border: 2px solid var(--ink-soft); background: transparent; color: var(--ink); }
 .audio .btn.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
 .backrow{margin:0 0 .6rem}
+.pieces .btn.stress { border-bottom-width: 5px; font-weight: 700; }
 @media (max-width: 430px) { .tabs { margin-inline: -6px; padding-inline: 2px; } .tabs a { font-size: 0.84rem; padding: 0 6px; } }
 .stressbox { background: #E8F0F8; border: 2px solid #c9d9ea; border-radius: 12px; padding: 12px 14px; margin: 10px 0; }
 .stressbox p { margin: 8px 0 0; color: #202D3B; }
@@ -721,7 +722,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "98";
+  var VERSION = "100";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -1026,6 +1027,13 @@ body { font-size: 1.06rem; line-height: 1.6; }
       if (busy) setTimeout(function () { if (myGen !== speakGen) return; try { ss.speak(u); } catch (e) {} }, 150); else ss.speak(u);
       var waitStart = function (n) {
         if (started || myGen !== speakGen) return;
+        if (!IS_IOS) {
+          markNoStart();
+          try { clearTimeout(myFinT); u.onend = null; u.onerror = null; } catch (e) {}
+          if (!window.__onlineBroken) onlinePlay(text, "it", Math.max(0.55, Math.min(1, (rate || baseRate()) * 0.85)), onend ? fin : null, function () { toast("No sound? Turn the volume up and open this page in Chrome or Safari."); fin(); });
+          else toast("No sound? Turn the volume up and open this page in Chrome or Safari.");
+          return;
+        }
         var busyNow = false; try { busyNow = ss.speaking || ss.pending; } catch (e) {}
         if (busyNow && n < 1) { setTimeout(function () { waitStart(n + 1); }, 1200); return; }
         markNoStart();
@@ -1035,7 +1043,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
           setTimeout(function () { if (!started && myGen === speakGen) { if (!window.__onlineBroken) { try { clearTimeout(myFinT); u.onend = null; u.onerror = null; } catch (e) {} onlinePlay(text, "it", Math.max(0.55, Math.min(1, (rate || baseRate()) * 0.85)), onend ? fin : null, function () { toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); fin(); }); } else toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); } }, 700);
         } catch (e) {}
       };
-      setTimeout(function () { waitStart(0); }, 1800);
+      setTimeout(function () { waitStart(0); }, IS_IOS ? 1800 : 900);
     } catch (e) { toast("The voice did not start. Try the Google Translate link."); if (onend) onend(); }
   }
 
@@ -1730,7 +1738,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     var h2 = '<section class="panel">' + navH + '</section><section class="pagehead"><h1 lang="it">' + esc(c.it) + '</h1><p class="ph">' + phHTML(c.ph) + '</p><p class="lede">' + esc(c.en) + '</p></section>';
     h2 += '<section class="panel"><h2>Step ' + (s + 1) + " of " + PZ_STEPS.length + ": " + esc(PZ_STEPS[s]) + "</h2>";
     if (s === 0) {
-      h2 += '<div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"', "primary") + btn("Slow", "slow", ' data-id="' + c.id + '"') + '</div>' + (n > 1 ? stressBoxHTML(sy) + '<p class="tip">Now hear it in pieces. Tap each piece.</p><div class="audio pieces">' + sy.map(function (sl, i) { return '<button type="button" class="btn sm' + (i === st ? " primary" : "") + '" data-act="word" data-w="' + esc(sl.t) + '" lang="it">' + esc(sl.t) + "</button>"; }).join("") + "</div>" : "") + '<p><a class="link" href="https://translate.google.com/?sl=it&tl=en&op=translate&text=' + encodeURIComponent(c.it) + '" target="_blank" rel="noopener">Hear it on Google Translate (no sign-up)</a>' + (c.it.indexOf(" ") < 0 ? ' &middot; <a class="link" href="https://en.wiktionary.org/wiki/' + encodeURIComponent(c.it.toLowerCase()) + '#Italian" target="_blank" rel="noopener">Real voice, if there is one</a>' : "") + '</p><p class="tip">Hard to tell it apart from another word? <a class="link" href="#pairs">Train your ear first (2 minutes)</a>.</p>';
+      h2 += '<div class="audio">' + btn(SPK_SM + " Hear it", "listen", ' data-id="' + c.id + '"', "primary") + btn("Slow", "slow", ' data-id="' + c.id + '"') + '</div>' + (n > 1 ? stressBoxHTML(sy) + '<p class="tip">Now hear it in pieces. Tap each piece.</p><div class="audio pieces">' + sy.map(function (sl, i) { return '<button type="button" class="btn sm' + (i === st ? " stress" : "") + '" data-act="word" data-w="' + esc(sl.t) + '" lang="it">'  + esc(sl.t) + "</button>"; }).join("") + "</div>" : "") + '<p><a class="link" href="https://translate.google.com/?sl=it&tl=en&op=translate&text=' + encodeURIComponent(c.it) + '" target="_blank" rel="noopener">Hear it on Google Translate (no sign-up)</a>' + (c.it.indexOf(" ") < 0 ? ' &middot; <a class="link" href="https://en.wiktionary.org/wiki/' + encodeURIComponent(c.it.toLowerCase()) + '#Italian" target="_blank" rel="noopener">Real voice, if there is one</a>' : "") + '</p><p class="tip">Hard to tell it apart from another word? <a class="link" href="#pairs">Train your ear first (2 minutes)</a>.</p>';
     } else if (s === 1) {
       if (n > 1) h2 += '<p class="tip" id="echoMsg" role="status" aria-live="polite">Press Echo on a piece. I say it, listen, and keep score.</p><p class="hint" id="echoDiag"></p><div class="audio">' + btn("Stop", "echostop", "") + '</div><ul class="rows">' + steps.map(function (tx) {
         return '<li><span class="rit" lang="it">' + esc(tx) + '</span><span class="pact">' + btn(SPK_SM + " Hear", "speakslow", ' data-t="' + esc(tx) + '"') + btn("Echo", "echo", ' data-t="' + esc(tx) + '" data-n="3"') + btn("Record me", "sayform", ' data-t="' + esc(tx) + '" data-p=""') + "</span></li>";
@@ -2428,7 +2436,10 @@ body { font-size: 1.06rem; line-height: 1.6; }
       case "sayform": openSay("frm:" + t.getAttribute("data-t"), { it: t.getAttribute("data-t"), ph: "", en: "", noCheck: true }); break;
       case "listen": clearEcho(); if (BYID[id]) speak(BYID[id].it, baseRate()); break;
       case "slow": clearEcho(); if (BYID[id]) speak(BYID[id].it, 0.5); break;
-      case "word": clearEcho(); speak(t.getAttribute("data-w"), 0.7); break;
+      case "word":
+        clearEcho();
+        try { var pcs = t.parentNode && t.parentNode.className.indexOf("pieces") >= 0 ? t.parentNode.querySelectorAll(".btn") : null; if (pcs) { for (var pi = 0; pi < pcs.length; pi++) pcs[pi].classList.remove("primary"); t.classList.add("primary"); } } catch (e) {}
+        speak(t.getAttribute("data-w"), 0.7); break;
       case "test": clearEcho(); speak("Buongiorno", baseRate()); break;
       case "say":
         if (t.getAttribute("data-k") !== null && t.getAttribute("data-cid")) {
