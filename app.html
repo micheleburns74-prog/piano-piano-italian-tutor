@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "89";
+  var VERSION = "90";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -986,7 +986,10 @@ body { font-size: 1.06rem; line-height: 1.6; }
       au.setAttribute("playsinline", ""); var pr = au.play(); if (pr && pr.catch) pr.catch(function () { audioUnlocked = false; });
     } catch (e) { audioUnlocked = false; }
   }
+  var speakGen = 0;
+  function killSpeech() { speakGen++; try { window.speechSynthesis.cancel(); } catch (e) {} try { if (window.__ov) window.__ov.pause(); } catch (e) {} }
   function speak(text, rate, onend) {
+    var myGen = ++speakGen;
     try { killSR(); } catch (e) {}
     if (!("speechSynthesis" in window) && !useOnline()) { toast("This browser cannot speak. Use the Google Translate link."); if (onend) onend(); return; }
     if (useOnline() && !window.__onlineBroken) {
@@ -1011,13 +1014,13 @@ body { font-size: 1.06rem; line-height: 1.6; }
       }
       var started = false; u.onstart = function () { started = true; };
       try { ss.resume(); } catch (e) {}
-      if (busy) setTimeout(function () { try { ss.speak(u); } catch (e) {} }, 150); else ss.speak(u);
+      if (busy) setTimeout(function () { if (myGen !== speakGen) return; try { ss.speak(u); } catch (e) {} }, 150); else ss.speak(u);
       setTimeout(function () {
-        if (started) return;
+        if (started || myGen !== speakGen) return;
         try {
           ss.cancel(); var u2 = new SpeechSynthesisUtterance(text); u2.lang = "it-IT"; u2.rate = rate || baseRate();
           u2.onstart = function () { started = true; }; ss.resume(); ss.speak(u2);
-          setTimeout(function () { if (!started) { if (!window.__onlineBroken) onlinePlay(text, "it", Math.max(0.55, Math.min(1, (rate || baseRate()) * 0.85)), onend, function () { toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); }); else toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); } }, 1500);
+          setTimeout(function () { if (!started && myGen === speakGen) { if (!window.__onlineBroken) onlinePlay(text, "it", Math.max(0.55, Math.min(1, (rate || baseRate()) * 0.85)), onend, function () { toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); }); else toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); } }, 1500);
         } catch (e) {}
       }, 1400);
     } catch (e) { toast("The voice did not start. Try the Google Translate link."); if (onend) onend(); }
@@ -1876,7 +1879,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
   function stopEcho() {
     loopSel.tok++; loopSel.running = false;
     clearEcho();
-    try { if ("speechSynthesis" in window) window.speechSynthesis.cancel(); } catch (e) {}
+    killSpeech();
   }
   function echoSay(msg) {
     var el = document.getElementById("echoTxt");
@@ -3796,7 +3799,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     plState.token++;
     var was = plState.on;
     plState.on = false;
-    try { if ("speechSynthesis" in window) window.speechSynthesis.cancel(); } catch (e) {}
+    killSpeech();
     try { if (plState.lock && plState.lock.release) plState.lock.release(); } catch (e2) {}
     plState.lock = null;
     if (was && !silent) render();
@@ -3819,10 +3822,13 @@ body { font-size: 1.06rem; line-height: 1.6; }
   }
   function plSkip(d) {
     if (!plState.on) return;
-    try { window.speechSynthesis.cancel(); } catch (e) {}
+    killSpeech();
     plState.token++;
+    var tk = plState.token;
     plState.i = (plState.i + d + plState.list.length) % plState.list.length;
-    plStep(plState.token);
+    var cnt = document.getElementById("plCount"); if (cnt) cnt.textContent = "Phrase " + (plState.i + 1) + " of " + plState.list.length;
+    var now = document.getElementById("plNow"); if (now) now.innerHTML = "";
+    setTimeout(function () { if (tk === plState.token) plStep(tk); }, 450);
   }
   function plStep(tok) {
     if (tok !== plState.token || !plState.on) return;
