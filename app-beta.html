@@ -721,7 +721,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "97";
+  var VERSION = "98";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -988,6 +988,9 @@ body { font-size: 1.06rem; line-height: 1.6; }
     } catch (e) { audioUnlocked = false; }
   }
   var speakGen = 0;
+  var IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent || "");
+  try { if (!IS_IOS && localStorage.getItem("pp-nostart") === "1") window.__plNoStart = true; } catch (e) {}
+  function markNoStart() { window.__plNoStart = true; try { if (!IS_IOS) localStorage.setItem("pp-nostart", "1"); } catch (e) {} }
   function killSpeech() { speakGen++; try { window.speechSynthesis.cancel(); } catch (e) {} try { if (window.__ov) window.__ov.pause(); } catch (e) {} }
   function speak(text, rate, onend) {
     var myGen = ++speakGen;
@@ -1010,12 +1013,13 @@ body { font-size: 1.06rem; line-height: 1.6; }
       if (voice) u.voice = voice;
       u.rate = rate || baseRate();
       u.pitch = 1;
+      var myFinT = null, fired = false;
+      var fin = function () { if (fired) return; fired = true; try { clearTimeout(myFinT); } catch (e) {} if (onend) onend(); };
+      var finErr = function (e) { if (e && e.error === "canceled") return; fin(); };
       if (onend) {
-        var fired = false;
-        var fin = function () { if (fired) return; fired = true; onend(); };
         u.onend = fin;
-        u.onerror = fin;
-        setTimeout(fin, Math.max(4000, text.length * 160 / (rate || 0.85)));
+        u.onerror = finErr;
+        myFinT = setTimeout(fin, Math.max(4000, text.length * 160 / (rate || 0.85)));
       }
       var started = false; u.onstart = function () { started = true; window.__spStart = Date.now(); };
       try { ss.resume(); } catch (e) {}
@@ -1024,11 +1028,11 @@ body { font-size: 1.06rem; line-height: 1.6; }
         if (started || myGen !== speakGen) return;
         var busyNow = false; try { busyNow = ss.speaking || ss.pending; } catch (e) {}
         if (busyNow && n < 1) { setTimeout(function () { waitStart(n + 1); }, 1200); return; }
-        window.__plNoStart = true;
+        markNoStart();
         try {
-          ss.cancel(); var u2 = new SpeechSynthesisUtterance(text); u2.lang = "it-IT"; if (voice) u2.voice = voice; u2.rate = rate || baseRate();
-          u2.onstart = function () { started = true; }; ss.resume(); ss.speak(u2);
-          setTimeout(function () { if (!started && myGen === speakGen) { if (!window.__onlineBroken) onlinePlay(text, "it", Math.max(0.55, Math.min(1, (rate || baseRate()) * 0.85)), onend, function () { toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); }); else toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); } }, 700);
+          u.onend = null; u.onerror = null; ss.cancel(); var u2 = new SpeechSynthesisUtterance(text); u2.lang = "it-IT"; if (voice) u2.voice = voice; u2.rate = rate || baseRate();
+          u2.onstart = function () { started = true; }; if (onend) { u2.onend = fin; u2.onerror = finErr; } ss.resume(); ss.speak(u2);
+          setTimeout(function () { if (!started && myGen === speakGen) { if (!window.__onlineBroken) { try { clearTimeout(myFinT); u.onend = null; u.onerror = null; } catch (e) {} onlinePlay(text, "it", Math.max(0.55, Math.min(1, (rate || baseRate()) * 0.85)), onend ? fin : null, function () { toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); fin(); }); } else toast("No sound? Turn the silent switch off, turn the volume up, and open this page in Safari or Chrome."); } }, 700);
         } catch (e) {}
       };
       setTimeout(function () { waitStart(0); }, 1800);
