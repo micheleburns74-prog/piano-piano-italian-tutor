@@ -720,7 +720,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "91";
+  var VERSION = "92";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -1012,7 +1012,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
         u.onerror = fin;
         setTimeout(fin, Math.max(4000, text.length * 160 / (rate || 0.85)));
       }
-      var started = false; u.onstart = function () { started = true; };
+      var started = false; u.onstart = function () { started = true; window.__spStart = Date.now(); };
       try { ss.resume(); } catch (e) {}
       if (busy) setTimeout(function () { if (myGen !== speakGen) return; try { ss.speak(u); } catch (e) {} }, 150); else ss.speak(u);
       setTimeout(function () {
@@ -3786,7 +3786,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
   function playlistHTML() {
     if (plState.on) {
       var c = plState.list[plState.i % plState.list.length];
-      return '<section class="panel"><h2>Audio playlist</h2><p class="count" id="plCount">Phrase ' + ((plState.i % plState.list.length) + 1) + " of " + plState.list.length + '</p><div id="plNow" aria-live="polite">' + plNowHTML(c) + '</div><div class="row"><button type="button" class="btn" data-act="plprev">Back</button><button type="button" class="btn primary big" data-act="plstop">Stop and go back</button><button type="button" class="btn" data-act="plnext">Next phrase</button></div>' +
+      return '<section class="panel"><h2>Audio playlist</h2><p class="count" id="plCount">Phrase ' + ((plState.i % plState.list.length) + 1) + " of " + plState.list.length + '</p><div id="plNow" aria-live="polite">' + plNowHTML(c) + '</div><div class="row"><button type="button" class="btn" data-act="plprev">Back</button><button type="button" class="btn primary big" data-act="plstop">Stop</button><button type="button" class="btn" data-act="plnext">Next phrase</button></div>' +
         '<p class="note">Keep this screen on. Your phone stops speaking when it locks.</p></section>';
     }
     var shaky = shakyCards().length;
@@ -3836,17 +3836,28 @@ body { font-size: 1.06rem; line-height: 1.6; }
     var now = document.getElementById("plNow");
     if (now) now.innerHTML = plNowHTML(c);
     var cnt = document.getElementById("plCount"); if (cnt) cnt.textContent = "Phrase " + ((plState.i % plState.list.length) + 1) + " of " + plState.list.length;
-    var t0 = Date.now();
-    var minMs = function (txt) { return 1500 + String(txt).length * 140; };
+    var t0 = Date.now(); window.__spStart = 0;
+    var minMs = function (txt) { return 1800 + String(txt).length * 170; };
+    var talking = function () {
+      try { if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) return true; } catch (e) {}
+      try { if (window.__ov && !window.__ov.paused && !window.__ov.ended) return true; } catch (e) {}
+      return false;
+    };
     speak(c.it, Math.min(baseRate(), 0.7), function () {
-      var wait = Math.max(0, minMs(c.it) - (Date.now() - t0));
-      plAfter(tok, wait + 2500, function () {
-        dayRec().heard++;
-        persist();
-        if (plState.i + 1 >= plState.list.length) { plStop(true); toast("Done. You heard all " + plState.list.length + " phrases."); render(); return; }
-        plState.i++;
-        plStep(tok);
-      });
+      var tries = 0;
+      (function settle() {
+        if (tok !== plState.token || !plState.on) return;
+        var from = window.__spStart || t0;
+        var left = minMs(c.it) - (Date.now() - from);
+        if ((left > 0 || talking()) && tries++ < 60) { setTimeout(settle, 250); return; }
+        plAfter(tok, 3500, function () {
+          dayRec().heard++;
+          persist();
+          if (plState.i + 1 >= plState.list.length) { plStop(true); toast("Done. You heard all " + plState.list.length + " phrases."); render(); return; }
+          plState.i++;
+          plStep(tok);
+        });
+      })();
     });
   }
 
