@@ -603,6 +603,12 @@ body { font-size: 1.06rem; line-height: 1.6; }
 .trres { margin-top: 14px; padding: 14px; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); }
 .trlab { margin: 0; font-weight: 700; }
 .trbreak { margin-top: 14px; }
+.trthumb { display: block; max-width: 100%; max-height: 200px; border-radius: 10px; border: 1px solid var(--line); margin-top: 12px; }
+.trrows { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 10px; }
+.trrow { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); min-width: 0; }
+.trsrc { margin: 0; color: var(--ink-soft); overflow-wrap: anywhere; }
+.trout { margin: 2px 0 8px; font-size: 1.25rem; font-weight: 600; overflow-wrap: anywhere; }
+.trprice { white-space: nowrap; font-weight: 600; }
 .trnote { margin: 6px 0 0; font-size: 1rem; color: var(--ink-soft); }
 .trwords { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .trword { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; }
@@ -735,7 +741,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "106";
+  var VERSION = "107";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -1329,7 +1335,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
       '<p class="note">Your progress is stored in this browser. A backup file keeps it safe if Chrome is ever cleared. It stays on your computer.</p>' +
       '<div class="row"><button type="button" class="btn" data-act="backupsave">Save backup file</button><label class="btn" for="restoreFile">Restore from a backup file</label><input type="file" id="restoreFile" accept=".json,application/json" class="sr"></div></section>' +
       '<h2 class="grp">This browser</h2><section class="panel"><h2>What works here</h2><ul class="tips">' + browserCheckHTML() + "</ul></section>" +
-      '<h2 class="grp">About</h2><section class="panel"><h2>About Piano Piano</h2><p class="about">Version ' + VERSION + '.</p><p class="about"><strong>Privacy.</strong> Your progress is saved in this browser. Your recordings stay in this browser tab and are never uploaded. The one exception is the optional pronunciation check, which uses Chrome\u2019s speech service (Google) while it listens. The Translate page sends the words you type to a free translation service (MyMemory) to get the translation. Nothing else you type is sent. There is no account and no tracking.</p></section>';
+      '<h2 class="grp">About</h2><section class="panel"><h2>About Piano Piano</h2><p class="about">Version ' + VERSION + '.</p><p class="about"><strong>Privacy.</strong> Your progress is saved in this browser. Your recordings stay in this browser tab and are never uploaded. The one exception is the optional pronunciation check, which uses Chrome\u2019s speech service (Google) while it listens. The Translate page sends the words you type, or the words found in a photo, to a free translation service (MyMemory) to get the translation. A photo itself is read on your device and is never uploaded; the first photo downloads a free reading tool (Tesseract) from a public network. Nothing else you type is sent. There is no account and no tracking.</p></section>';
   }
 
   function previewRows(list) {
@@ -2383,7 +2389,12 @@ body { font-size: 1.06rem; line-height: 1.6; }
       '<textarea id="trIn" class="trbox" rows="3" maxlength="300" lang="' + (en2it ? "en" : "it") + '" autocapitalize="sentences" spellcheck="false">' + esc(tr.text) + "</textarea>" +
       '<div class="row"><button type="button" class="btn primary" data-act="trgo">Translate</button><button type="button" class="btn" data-act="trclear">Clear</button></div>' +
       '<div id="trOut" aria-live="polite">' + trOutHTML() + "</div>" +
-      '<p class="hint">Your words are sent to a free translation service (MyMemory) to translate them. It is a computer translation, so check anything important with someone who speaks Italian.</p></section>';
+      '<p class="hint">Your words are sent to a free translation service (MyMemory) to translate them. It is a computer translation, so check anything important with someone who speaks Italian.</p></section>' +
+      '<section class="panel"><h2>Translate a photo</h2><p class="lede">Take a picture of a menu or a sign, or pick one from your photos. It reads the words and translates each line. It uses the way picked above: <strong>' + (en2it ? "the photo is in English" : "the photo is in Italian") + '</strong>.</p>' +
+      '<div class="row"><button type="button" class="btn primary" data-act="trphoto">Take or choose a photo</button><button type="button" class="btn" data-act="trphotoclear">Clear photo</button></div>' +
+      '<input type="file" id="trPhoto" accept="image/*" hidden>' +
+      '<div id="trPhOut" aria-live="polite">' + trpHTML() + "</div>" +
+      '<p class="hint">Your photo stays on your device. It is read here, not uploaded. Only the words found in it are sent to the translator. The first photo downloads a free reading tool, about 15 MB. Hold the phone steady, in good light, with the words filling the picture. Check the lines: a blurry word can be read wrong.</p></section>';
   }
   function trShow() { var o = document.getElementById("trOut"); if (o) o.innerHTML = trOutHTML(); }
   function trGo() {
@@ -2410,6 +2421,158 @@ body { font-size: 1.06rem; line-height: 1.6; }
       })
       .catch(function () { done("", "I couldn’t reach the translator. Check your internet and try again."); });
   }
+  /* ---------- Translate a photo (menu, sign): read on the device with Tesseract, then translate line by line ---------- */
+  var trp = { rows: [], thumb: "", busy: false, status: "", err: "", dir: "en|it" }, trpTok = 0, TESS_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+  function trpClear() { trpTok++; trp.rows = []; trp.thumb = ""; trp.busy = false; trp.status = ""; trp.err = ""; trpShow(); }
+  function trpHTML() {
+    var h = "";
+    if (trp.thumb) h += '<img class="trthumb" src="' + trp.thumb + '" alt="Your photo">';
+    if (trp.busy && trp.status) h += '<p class="tip" role="status">' + esc(trp.status) + "</p>";
+    if (trp.err) h += '<p class="tip" role="alert">' + esc(trp.err) + "</p>";
+    if (trp.rows.length) {
+      var it2en = trp.dir === "it|en";
+      h += '<p class="trlab trbreak">' + (it2en ? "Each line in English" : "Each line in Italian") + '</p><ul class="trrows">';
+      trp.rows.forEach(function (r, i) {
+        var itText = it2en ? r.src : r.out, ok = r.state === "done" && itText;
+        h += '<li class="trrow"><p class="trsrc" lang="' + (it2en ? "it" : "en") + '">' + esc(r.src) + (r.price ? ' <span class="trprice">' + esc(r.price) + "</span>" : "") + "</p>" +
+          '<p class="trout"' + (it2en ? "" : ' lang="it"') + ">" + (r.state === "done" ? esc(r.out) : r.state === "err" ? "(I couldn’t translate this line)" : "…") + "</p>";
+        if (ok) h += '<div class="audio"><button type="button" class="btn sm primary" data-act="trhear" data-t="' + esc(trNumIn(itText)) + '">' + SPK_SM + " Hear the Italian</button>" +
+          '<button type="button" class="btn sm" data-act="trbreak" data-i="' + i + '">How to say it</button></div>';
+        h += "</li>";
+      });
+      h += "</ul>";
+    }
+    return h;
+  }
+  function trpShow() { var o = document.getElementById("trPhOut"); if (o) o.innerHTML = trpHTML(); }
+  function trpLoadLib() {
+    return new Promise(function (res, rej) {
+      if (window.Tesseract) { res(window.Tesseract); return; }
+      var sc = document.createElement("script"), done = false, to = setTimeout(function () { if (!done) { done = true; rej(new Error("lib")); } }, 45000);
+      sc.src = TESS_URL; sc.async = true;
+      sc.onload = function () { if (done) return; done = true; clearTimeout(to); window.Tesseract ? res(window.Tesseract) : rej(new Error("lib")); };
+      sc.onerror = function () { if (done) return; done = true; clearTimeout(to); rej(new Error("lib")); };
+      document.head.appendChild(sc);
+    });
+  }
+  var trpProg = null;
+  function trpWorker(lang) {
+    window.__trW = window.__trW || {};
+    if (!window.__trW[lang]) {
+      window.__trW[lang] = window.Tesseract.createWorker(lang, 1, {
+        logger: function (m) { if (trpProg) trpProg(m); }
+      });
+      window.__trW[lang].catch(function () { delete window.__trW[lang]; });
+    }
+    return window.__trW[lang];
+  }
+  function trpImage(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        try {
+          var W = im.naturalWidth, H = im.naturalHeight, k = Math.min(1, 1800 / Math.max(W, H)), c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(H * k));
+          var cx = c.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height); cx.drawImage(im, 0, 0, c.width, c.height);
+          var t = document.createElement("canvas"), tk = Math.min(1, 480 / Math.max(c.width, c.height));
+          t.width = Math.max(1, Math.round(c.width * tk)); t.height = Math.max(1, Math.round(c.height * tk));
+          t.getContext("2d").drawImage(c, 0, 0, t.width, t.height);
+          URL.revokeObjectURL(url);
+          res({ canvas: c, thumb: t.toDataURL("image/jpeg", 0.6) });
+        } catch (e) { URL.revokeObjectURL(url); rej(e); }
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); rej(new Error("img")); };
+      im.src = url;
+    });
+  }
+  function trpLines(text) {
+    var out = [], seen = {};
+    String(text || "").split(/\r?\n/).forEach(function (raw) {
+      var ln = raw.replace(/[.·…_\-–—=~]{3,}/g, " ").replace(/\s+/g, " ").trim(), price = "", m;
+      m = /(?:^|\s)((?:[€$]\s*)?\d{1,3}(?:[.,]\d{1,2})?\s*(?:€|euro)?)\s*$/i.exec(ln);
+      if (m && /[A-Za-zÀ-ÿ]{3}/.test(ln.slice(0, m.index))) { price = m[1].trim(); ln = ln.slice(0, m.index).trim(); }
+      ln = ln.replace(/^[^A-Za-zÀ-ÿ0-9'"(]+/, "").replace(/[^A-Za-zÀ-ÿ0-9'")?!.:,;]+$/, "");
+      var letters = (ln.match(/[A-Za-zÀ-ÿ]/g) || []).length;
+      if (letters < 3 || letters / Math.max(1, ln.length) < 0.5) return;
+      if (ln.length > 200) ln = ln.slice(0, 200);
+      var key = ln.toLowerCase(); if (seen[key]) return; seen[key] = 1;
+      out.push({ src: ln, price: price, out: "", state: "wait" });
+    });
+    return out.slice(0, 40);
+  }
+  function trFetch(q, dir) {
+    return new Promise(function (res, rej) {
+      var ctl = ("AbortController" in window) ? new AbortController() : null, to = setTimeout(function () { try { if (ctl) ctl.abort(); } catch (e) {} rej(new Error("net")); }, 12000);
+      fetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(q) + "&langpair=" + dir, ctl ? { signal: ctl.signal } : {})
+        .then(function (r) { if (!r.ok) throw new Error("net"); return r.json(); })
+        .then(function (j) {
+          clearTimeout(to);
+          var t = j && j.responseData && j.responseData.translatedText;
+          if (!t) throw new Error("net");
+          t = trDecode(t);
+          if (Number(j.responseStatus) === 429 || /MYMEMORY WARNING|QUERY LENGTH LIMIT|INVALID LANGUAGE/i.test(t)) { rej(new Error("limit")); return; }
+          res(t);
+        })
+        .catch(function () { clearTimeout(to); rej(new Error("net")); });
+    });
+  }
+  function trpRun(file) {
+    var my = ++trpTok, dir = tr.dir, lang = dir === "it|en" ? "ita" : "eng", alive = function () { return my === trpTok; };
+    trp = { rows: [], thumb: "", busy: true, status: "Opening your picture…", err: "", dir: dir };
+    trpShow();
+    trpImage(file).then(function (im) {
+      if (!alive()) return null;
+      trp.thumb = im.thumb;
+      trp.status = window.Tesseract ? "Reading the photo…" : "Getting the photo reader ready. The first time it downloads about 15 MB, so Wi-Fi is best…";
+      trpShow();
+      return trpLoadLib().then(function () { return trpWorker(lang); }).then(function (w) {
+        if (!alive()) return null;
+        trpProg = function (m) {
+          if (!alive()) return;
+          if (m.status === "recognizing text") trp.status = "Reading the photo… " + Math.round((m.progress || 0) * 100) + "%";
+          else if (/loading/.test(m.status || "")) trp.status = "Getting the photo reader ready (first time only)…";
+          trpShow();
+        };
+        trp.status = "Reading the photo…"; trpShow();
+        return w.recognize(im.canvas);
+      });
+    }).then(function (r) {
+      if (!r || !alive()) return;
+      trpProg = null;
+      var rows = trpLines(r.data && r.data.text);
+      if (!rows.length) { trp.busy = false; trp.status = ""; trp.err = "I couldn’t find any words in that photo. Try again closer, in good light, with the page flat and the words filling the picture."; trpShow(); return; }
+      trp.rows = rows; trp.status = "Translating…"; trpShow();
+      var next = 0, active = 0, stopped = false;
+      function finish() { trp.busy = false; trp.status = ""; rows.forEach(function (r) { if (r.state === "wait") r.state = "err"; }); trpShow(); }
+      function pump() {
+        if (!alive()) return;
+        while (!stopped && active < 3 && next < rows.length) {
+          (function (row) {
+            active++;
+            trFetch(row.src, dir).then(function (t) { row.out = t; row.state = "done"; }, function (e) {
+              row.state = "err";
+              if (e && e.message === "limit") { stopped = true; trp.err = "The free translator has reached its limit for today. Try again later."; }
+            }).then(function () {
+              active--;
+              if (!alive()) return;
+              trpShow();
+              if (active === 0 && (stopped || next >= rows.length)) finish(); else pump();
+            });
+          })(rows[next++]);
+        }
+      }
+      pump();
+    }).catch(function (e) {
+      if (!alive()) return;
+      trpProg = null; trp.busy = false; trp.status = "";
+      trp.err = e && e.message === "img" ? "I couldn’t open that picture. Try another one." : e && e.message === "lib" ? "I couldn’t load the photo reader. Check your internet and try again. You can still type the words above." : "I couldn’t read that photo. Try again, or type the words above.";
+      trpShow();
+    });
+  }
+  app.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t && t.id === "trPhoto" && t.files && t.files[0]) { var f = t.files[0]; try { t.value = ""; } catch (x) {} trpRun(f); }
+  });
   app.addEventListener("input", function (e) { if (e.target && e.target.id === "trIn") tr.text = e.target.value; });
   app.addEventListener("keydown", function (e) { if (e.target && e.target.id === "trIn" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); trGo(); } });
   var PRACTICE_NAV = [["say", "Say"], ["read", "Read"], ["write", "Write"], ["pairs", "Train your ear"], ["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["lists", "My word lists"]];
@@ -2665,7 +2828,10 @@ body { font-size: 1.06rem; line-height: 1.6; }
       case "speakslow": speak(t.getAttribute("data-t"), 0.55); break;
       case "trhear": speak(t.getAttribute("data-t"), baseRate()); break;
       case "trgo": trGo(); break;
-      case "trdir": tr.dir = t.getAttribute("data-d") === "it|en" ? "it|en" : "en|it"; tr.out = ""; tr.err = ""; trTok++; tr.busy = false; render(); break;
+      case "trphoto": try { document.getElementById("trPhoto").click(); } catch (e) {} break;
+      case "trphotoclear": trpClear(); break;
+      case "trbreak": { var br = trp.rows[Number(t.getAttribute("data-i"))]; if (br) { tr.text = br.src; tr.out = ""; tr.err = ""; trTok++; render(); trGo(); try { window.scrollTo(0, 0); } catch (e) {} } break; }
+      case "trdir": tr.dir = t.getAttribute("data-d") === "it|en" ? "it|en" : "en|it"; tr.out = ""; tr.err = ""; trTok++; tr.busy = false; trpClear(); render(); break;
       case "trclear": tr.text = ""; tr.out = ""; tr.err = ""; trTok++; tr.busy = false; render(); break;
       case "trcopy": try { navigator.clipboard.writeText(tr.out).then(function () { toast("Copied."); }, function () { toast("Select the words and copy them."); }); } catch (e) { toast("Select the words and copy them."); } break;
       case "echo": if (t.getAttribute("data-t")) echoDrill(t.getAttribute("data-t"), Number(t.getAttribute("data-n")) || 2); else if (BYID[id]) runEcho(id); break;
