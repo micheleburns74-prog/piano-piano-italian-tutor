@@ -606,7 +606,9 @@ body { font-size: 1.06rem; line-height: 1.6; }
 .trnote { margin: 6px 0 0; font-size: 1rem; color: var(--ink-soft); }
 .trwords { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .trword { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; }
-.trpc { font-size: 1.2rem; min-height: 44px; padding: 0 12px; }
+.trpc { font-size: 1.2rem; min-height: 44px; padding: 0 12px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.trword { min-width: 0; max-width: 100%; }
+.trtext { word-break: break-word; }
 .trall { min-height: 44px; }
 .trtext { font-size: 1.6rem; line-height: 1.35; margin: 4px 0 12px; overflow-wrap: anywhere; }
 .pieces .btn.stress { border-bottom-width: 5px; font-weight: 700; }
@@ -733,7 +735,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "105";
+  var VERSION = "106";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -2197,16 +2199,87 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if (tr.busy) return '<p class="tip" role="status">Translating&hellip;</p>';
     if (tr.err) return '<p class="tip" role="alert">' + esc(tr.err) + "</p>";
     if (!tr.out) return "";
-    var it2en = tr.dirDone === "it|en", itText = it2en ? tr.src : tr.out;
+    var it2en = tr.dirDone === "it|en", itText = trNumIn(it2en ? tr.src : tr.out);
     return '<div class="trres"><p class="trlab">' + (it2en ? "In English" : "In Italian") + '</p><p class="trtext"' + (it2en ? "" : ' lang="it"') + ">" + esc(tr.out) + '</p><div class="audio">' +
       '<button type="button" class="btn sm primary" data-act="trhear" data-t="' + esc(itText) + '">' + SPK_SM + " Hear the Italian</button>" +
       '<button type="button" class="btn sm" data-act="speakslow" data-t="' + esc(itText) + '">Slow</button>' +
       '<button type="button" class="btn sm" data-act="trcopy">Copy</button></div>' + trPiecesHTML(itText) + "</div>";
   }
+  /* Numbers: spell digits out in Italian (words + sounds-like), so 13 becomes tredici. */
+  /* Get typed text ready to be read aloud and split: times, dates, money, percents, decimals, ordinals, symbols. */
+  var TR_ORD = { 1: "primo", 2: "secondo", 3: "terzo", 4: "quarto", 5: "quinto", 6: "sesto", 7: "settimo", 8: "ottavo", 9: "nono", 10: "decimo" };
+  function trPrep(t) {
+    t = String(t).replace(/[‘’ʼ`´]/g, "'").replace(/[–—]/g, " ");
+    t = t.replace(/(\d)\s*[°ºª]/g, function (m, d) { return TR_ORD[Number(d)] ? " " + TR_ORD[Number(d)] + " " : d + " "; });
+    t = t.replace(/(\d{1,3}(?:\.\d{3})+)(?!\d)/g, function (m) { return m.replace(/\./g, ""); });
+    t = t.replace(/\b(\d{1,2})[:.](\d{2})\b/g, function (m, h, mi) { return Number(mi) === 0 ? h + " " : h + " e " + Number(mi) + " "; });
+    t = t.replace(/(\d+)[,.](\d+)/g, function (m, a, b) { return a + " virgola " + (/^0\d/.test(b) ? b.split("").join(" ") : b); });
+    t = t.replace(/(\d)\s*%/g, "$1 per cento ").replace(/%/g, " per cento ");
+    t = t.replace(/[€]\s*(\d+)/g, "$1 euro ").replace(/(\d+)\s*[€]/g, "$1 euro ").replace(/\$\s*(\d+)/g, "$1 dollari ").replace(/(\d+)\s*\$/g, "$1 dollari ").replace(/[€]/g, " euro ").replace(/\$/g, " dollari ");
+    t = t.replace(/(\d)\s*-\s*(?=[\d(])/g, "$1 ").replace(/[\/\\|_~*#=<>\[\]{}^\u2022]+/g, " ");
+    t = t.replace(/\bDott\.ssa\b/gi, "dottoressa").replace(/\bDott\./gi, "dottor").replace(/\bSig\.ra\b/gi, "signora").replace(/\bSig\./gi, "signor").replace(/\bProf\./gi, "professor").replace(/\bAvv\./gi, "avvocato").replace(/\bIng\./gi, "ingegner");
+    t = t.replace(/&/g, " e ").replace(/\+/g, " più ").replace(/@/g, " chiocciola ");
+    t = t.replace(/(\d)([A-Za-zÀ-ÿ])/g, "$1 $2").replace(/([A-Za-zÀ-ÿ])(\d)/g, "$1 $2");
+    t = t.replace(/\d{10,}/g, function (m) { return m.split("").join(" "); });
+    t = t.replace(/-+/g, " ").replace(/\s+/g, " ").replace(/^ | $/g, "");
+    return t;
+  }
+  var trNumMap = {};
+  var TR_U = ["", ["uno", "OO-noh"], ["due", "DOO-eh"], ["tre", "treh"], ["quattro", "KWAHT-troh"], ["cinque", "CHEEN-kweh"], ["sei", "SEH-ee"], ["sette", "SEHT-teh"], ["otto", "OHT-toh"], ["nove", "NOH-veh"]];
+  var TR_T = [["dieci", "DYEH-chee"], ["undici", "OON-dee-chee"], ["dodici", "DOH-dee-chee"], ["tredici", "TREH-dee-chee"], ["quattordici", "kwaht-TOHR-dee-chee"], ["quindici", "KWEEN-dee-chee"], ["sedici", "SEH-dee-chee"], ["diciassette", "dee-chahs-SEHT-teh"], ["diciotto", "dee-CHOHT-toh"], ["diciannove", "dee-chahn-NOH-veh"]];
+  var TR_X = [0, 0, ["venti", "VEHN-tee", "vent", "vehn"], ["trenta", "TREHN-tah", "trent", "trehn"], ["quaranta", "kwah-RAHN-tah", "quarant", "kwah-rahn"], ["cinquanta", "cheen-KWAHN-tah", "cinquant", "cheen-kwahn"], ["sessanta", "sehs-SAHN-tah", "sessant", "sehs-sahn"], ["settanta", "seht-TAHN-tah", "settant", "seht-tahn"], ["ottanta", "oht-TAHN-tah", "ottant", "oht-tahn"], ["novanta", "noh-VAHN-tah", "novant", "noh-vahn"]];
+  function trUnder100(n, comp) {
+    var u = n % 10, t = Math.floor(n / 10), x;
+    if (n < 10) { var a = TR_U[n]; return n === 3 ? (comp ? ["tré", "TREH"] : ["tre", "TREH"]) : [a[0], a[1]]; }
+    if (n < 20) return TR_T[n - 10];
+    x = TR_X[t];
+    if (!u) return [x[0], x[1]];
+    if (u === 1 || u === 8) return [x[2] + TR_U[u][0], x[3] + "-T" + TR_U[u][1]];
+    var un = u === 3 ? ["tré", "TREH"] : TR_U[u];
+    return [x[0] + un[0], x[1] + "-" + un[1]];
+  }
+  function trUnder1000(n, after) {
+    var h = Math.floor(n / 100), r = n % 100, w = "", p = "", q;
+    if (h) {
+      if (h === 1) { w = "cento"; p = "CHEHN-toh"; }
+      else { w = TR_U[h][0] + "cento"; p = (h === 3 ? "treh" : TR_U[h][1]) + "-CHEHN-toh"; }
+    }
+    if (r) {
+      q = trUnder100(r, !!(h || after));
+      if (h && /^o/.test(q[0])) { w = w.slice(0, -1) + q[0]; p = p.slice(0, -2) + q[1]; }
+      else { w += q[0]; p += (p ? "-" : "") + q[1]; }
+    }
+    return [w, p];
+  }
+  function trNumWords(n) {
+    var out = [], mil = Math.floor(n / 1000000), rest = n % 1000000, th = Math.floor(rest / 1000), r = rest % 1000, w = "", p = "", q;
+    if (n === 0) return [["zero", "DZEH-roh"]];
+    if (mil) {
+      if (mil === 1) { out.push(["un", "oon"]); out.push(["milione", "mee-LYOH-neh"]); }
+      else { q = trUnder1000(mil); out.push([q[0], q[1]]); out.push(["milioni", "mee-LYOH-nee"]); }
+    }
+    if (th) {
+      if (th === 1) { w = "mille"; p = "MEEL-leh"; }
+      else { q = trUnder1000(th); w = q[0].replace(/tré$/, "tre") + "mila"; p = q[1].replace(/-?TREH$/, "-treh") + "-MEE-lah"; }
+    }
+    if (r) { q = trUnder1000(r, !!(w || mil)); w += q[0]; p += (p ? "-" : "") + q[1]; }
+    if (w) out.push([w, p]);
+    return out;
+  }
+  function trNumIn(text) {
+    trNumMap = {};
+    return trPrep(text).replace(/\d[\d.,]*/g, function (tok0) {
+      var m = /^(\d[\d.,]*?)([.,]*)$/.exec(tok0), tok = m ? m[1] : tok0, tail = m ? m[2] : "";
+      if (!/^\d{1,9}$/.test(tok)) return tok0;
+      var ws = trNumWords(Number(tok));
+      ws.forEach(function (x) { trNumMap[x[0].toLowerCase().replace(/[^a-zà-ÿ]/g, "")] = x[1]; });
+      return " " + ws.map(function (x) { return x[0]; }).join(" ") + tail + " ";
+    }).replace(/\s+/g, " ").replace(/^ | $/g, "");
+  }
   /* Sounds-like guide for any Italian text, in the same style as the phrase cards (stressed piece in capitals). */
   function trRespellPiece(p, prevV, nextStart) {
     var s = String(p).toLowerCase().replace(/[^a-zà-ÿ]/g, ""), o = "", i = 0, n = s.length, V = "aeiouàèéìòóù", ch, nx, n2, dp;
-    var DI = { ai: "eye", ei: "ay", oi: "oy", au: "ow", ao: "ow", ue: "oo-eh", ua: "oo-ah" };
+    var DI = { ai: "eye", ei: "ay", oi: "oy", au: "ow", ao: "ow", ue: "oo-eh", ua: "oo-ah", eu: "eh-oo" };
     function isv(c) { return !!c && V.indexOf(c) >= 0; }
     function vs(c) { return { a: "ah", "à": "ah", e: "eh", "è": "eh", "é": "ay", i: "ee", "ì": "ee", o: "oh", "ò": "oh", "ó": "oh", u: "oo", "ù": "oo" }[c] || c; }
     function soft(c) { return c === "e" || c === "i" || c === "è" || c === "é" || c === "ì"; }
@@ -2231,7 +2304,10 @@ body { font-size: 1.06rem; line-height: 1.6; }
       if (ch === "x") { o += "ks"; i++; continue; }
       if (isv(ch)) {
         dp = DI[ch + (nx || "")];
+        if (dp && /^[aeo]i$/.test(ch + nx) && isv(n2)) dp = null;
+        if (dp === "eye" && o !== "") dp = "igh";
         if (dp && !(i > 0 && s[i - 1] === "i" && isv(s[i - 2]))) { o += dp; i += 2; continue; }
+        if (ch === "i" && i > 0 && isv(s[i - 1]) && isv(nx)) { o += "-y"; i++; continue; }
         if ((ch === "i" || ch === "u") && isv(nx) && (i === 0 || !isv(s[i - 1]))) { o += ch === "i" ? "y" : "w"; i++; continue; }
         o += vs(ch); i++; continue;
       }
@@ -2260,8 +2336,14 @@ body { font-size: 1.06rem; line-height: 1.6; }
       }
       var low = w.join("").toLowerCase().replace(/[^a-zà-ÿ]/g, "");
       if (low === "aiuto") return "ah-YOO-toh";
+      if (trNumMap[low]) return trNumMap[low];
+      pcs = pcs.slice();
+      for (var gi = 0; gi < pcs.length - 1; gi++) {
+        if (/[aeouàèòù]i$/i.test(pcs[gi]) && /^[aeiouàèéìòóù]/i.test(pcs[gi + 1])) { pcs[gi] = pcs[gi].slice(0, -1); pcs[gi + 1] = "y" + pcs[gi + 1]; }
+      }
       var st = trStressPiece(pcs), out = [], carry = "";
       if (pcs.length >= 2 && /(ei|oi)$/.test(pcs[pcs.length - 1].toLowerCase())) st = pcs.length - 1;
+      if (pcs.length >= 2 && /[a-z][aeo]i[aeou]$/.test(pcs[pcs.length - 1].toLowerCase())) st = pcs.length - 1;
       pcs.forEach(function (pc, i) {
         var prev = i > 0 ? pcs[i - 1].toLowerCase().replace(/[^a-zà-ÿ]/g, "") : "", nxt = i < pcs.length - 1 ? pcs[i + 1].toLowerCase().replace(/[^a-zà-ÿ]/g, "") : "";
         var r = trRespellPiece(pc, /[aeiouàèéìòóù]$/.test(prev), nxt);
@@ -2271,6 +2353,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
         out.push(r);
       });
       if (carry && out.length) out[out.length - 1] += carry;
+      if (!out.length) return w.join("").toLowerCase().replace(/[^a-zà-ÿ]/g, "") || "x";
       return out.join("-");
     }).join(" ");
   }
