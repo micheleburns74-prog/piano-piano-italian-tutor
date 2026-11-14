@@ -602,9 +602,16 @@ body { font-size: 1.06rem; line-height: 1.6; }
 .trbox { width: 100%; box-sizing: border-box; font: inherit; font-size: 1.25rem; line-height: 1.4; padding: 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); min-height: 5.5rem; resize: vertical; }
 .trres { margin-top: 14px; padding: 14px; border: 2px solid var(--line); border-radius: 12px; background: var(--surface); }
 .trlab { margin: 0; font-weight: 700; }
+.trbreak { margin-top: 14px; }
+.trnote { margin: 6px 0 0; font-size: 1rem; color: var(--ink-soft); }
+.trwords { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.trword { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; }
+.trpc { font-size: 1.2rem; min-height: 44px; padding: 0 12px; }
+.trall { min-height: 44px; }
 .trtext { font-size: 1.6rem; line-height: 1.35; margin: 4px 0 12px; overflow-wrap: anywhere; }
 .pieces .btn.stress { border-bottom-width: 5px; font-weight: 700; }
-@media (max-width: 430px) { .tabs { margin-inline: -6px; padding-inline: 2px; } .tabs a { font-size: 0.84rem; padding: 0 6px; } }
+@media (max-width: 430px) { .tabs { margin-inline: -6px; padding-inline: 2px; } .tabs a { font-size: 0.8rem; padding: 0 4px; } }
+@media (max-width: 380px) { .tabs a { font-size: 0.74rem; padding: 0 3px; letter-spacing: -0.01em; } }
 .stressbox { background: #E8F0F8; border: 2px solid #c9d9ea; border-radius: 12px; padding: 12px 14px; margin: 10px 0; }
 .stressbox p { margin: 8px 0 0; color: #202D3B; }
 .sbrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
@@ -726,7 +733,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     });
   });
 
-  var VERSION = "103";
+  var VERSION = "105";
   var FORMS_M = {
     "Sono americana": ["Sono americano", "SOH-noh ah-meh-ree-KAH-noh", "I am American", "Said by a man. A woman says 'americana'."],
     "Voglio diventare cittadina italiana": ["Voglio diventare cittadino italiano", "VOH-lyoh dee-ven-TAH-reh cheet-tah-DEE-noh ee-tah-LYAH-noh", "I want to become an Italian citizen", "A long one. Take it in two halves. A woman says 'cittadina italiana'."]
@@ -1281,7 +1288,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     return '<header class="top"><div class="top-in"><div class="mark"><svg class="logo" viewBox="0 0 28 20" width="28" height="20" aria-hidden="true" focusable="false" fill="currentColor"><rect x="1" y="7" width="3" height="6" rx="1.5"/><rect x="7" y="3" width="3" height="14" rx="1.5"/><rect x="13" y="0" width="3" height="20" rx="1.5"/><rect x="19" y="4" width="3" height="12" rx="1.5"/><rect x="25" y="7" width="3" height="6" rx="1.5"/></svg><span class="word">Piano Piano</span><span class="tag">Italian, a little at a time</span></div>' +
       '<nav class="tabs" aria-label="Sections">' + (S.prefs.simple || S.prefs.focus
         ? tab("today", "Today") + '<a href="#more"' + (view !== "today" ? ' aria-current="page"' : "") + ">More</a>"
-        : tab("today", "Today") + tabG(["say", "read", "write", "pairs", "phrases", "listening", "sounds", "lists", "translate"], "say", "Practice") + tabG(["progress", "sessions", "plan", "lesson"], "progress", "My progress") + tab("tutor", "Coach") + tab("settings", "Settings")) + "</nav></div></header>";
+        : tab("today", "Today") + tabG(["say", "read", "write", "pairs", "phrases", "listening", "sounds", "lists"], "say", "Practice") + tab("translate", "Translate") + tabG(["progress", "sessions", "plan", "lesson"], "progress", "My progress") + tab("tutor", "Coach") + tab("settings", "Settings")) + "</nav></div></header>";
   }
 
   function browserCheckHTML() {
@@ -2194,7 +2201,94 @@ body { font-size: 1.06rem; line-height: 1.6; }
     return '<div class="trres"><p class="trlab">' + (it2en ? "In English" : "In Italian") + '</p><p class="trtext"' + (it2en ? "" : ' lang="it"') + ">" + esc(tr.out) + '</p><div class="audio">' +
       '<button type="button" class="btn sm primary" data-act="trhear" data-t="' + esc(itText) + '">' + SPK_SM + " Hear the Italian</button>" +
       '<button type="button" class="btn sm" data-act="speakslow" data-t="' + esc(itText) + '">Slow</button>' +
-      '<button type="button" class="btn sm" data-act="trcopy">Copy</button></div></div>';
+      '<button type="button" class="btn sm" data-act="trcopy">Copy</button></div>' + trPiecesHTML(itText) + "</div>";
+  }
+  /* Sounds-like guide for any Italian text, in the same style as the phrase cards (stressed piece in capitals). */
+  function trRespellPiece(p, prevV, nextStart) {
+    var s = String(p).toLowerCase().replace(/[^a-zà-ÿ]/g, ""), o = "", i = 0, n = s.length, V = "aeiouàèéìòóù", ch, nx, n2, dp;
+    var DI = { ai: "eye", ei: "ay", oi: "oy", au: "ow", ao: "ow", ue: "oo-eh", ua: "oo-ah" };
+    function isv(c) { return !!c && V.indexOf(c) >= 0; }
+    function vs(c) { return { a: "ah", "à": "ah", e: "eh", "è": "eh", "é": "ay", i: "ee", "ì": "ee", o: "oh", "ò": "oh", "ó": "oh", u: "oo", "ù": "oo" }[c] || c; }
+    function soft(c) { return c === "e" || c === "i" || c === "è" || c === "é" || c === "ì"; }
+    while (i < n) {
+      ch = s[i]; nx = s[i + 1]; n2 = s[i + 2];
+      if (ch === "s" && nx === "c" && soft(n2)) { o += "sh"; i += 2; continue; }
+      if (ch === "s" && nx === "c") { o += "sk"; i += (n2 === "h" ? 3 : 2); continue; }
+      if (ch === "g" && nx === "l" && n2 === "i") { o += "ly" + (isv(s[i + 3]) ? "" : "ee"); i += 3; continue; }
+      if (ch === "g" && nx === "n") { o += "ny"; i += 2; continue; }
+      if (ch === "c" && nx === "h") { o += "k"; i += 2; continue; }
+      if (ch === "g" && nx === "h") { o += "g"; i += 2; continue; }
+      if (ch === "c" && soft(nx)) { o += "ch"; i += 1; if (nx === "i" && isv(n2)) i += 1; continue; }
+      if (ch === "g" && soft(nx)) { o += "j"; i += 1; if (nx === "i" && isv(n2)) i += 1; continue; }
+      if (ch === "c" && i === n - 1 && nextStart && soft(nextStart.charAt(1)) && nextStart.charAt(0) === "c") { o += "t"; i++; continue; }
+      if (ch === "g" && i === n - 1 && nextStart && soft(nextStart.charAt(1)) && nextStart.charAt(0) === "g") { o += "d"; i++; continue; }
+      if (ch === "c") { o += "k"; i++; continue; }
+      if (ch === "q" && nx === "u") { o += "kw"; i += 2; continue; }
+      if (ch === "g" && nx === "u" && isv(n2)) { o += "gw"; i += 2; continue; }
+      if (ch === "z") { o += "ts"; i++; continue; }
+      if (ch === "h") { i++; continue; }
+      if (ch === "j") { o += "y"; i++; continue; }
+      if (ch === "x") { o += "ks"; i++; continue; }
+      if (isv(ch)) {
+        dp = DI[ch + (nx || "")];
+        if (dp && !(i > 0 && s[i - 1] === "i" && isv(s[i - 2]))) { o += dp; i += 2; continue; }
+        if ((ch === "i" || ch === "u") && isv(nx) && (i === 0 || !isv(s[i - 1]))) { o += ch === "i" ? "y" : "w"; i++; continue; }
+        o += vs(ch); i++; continue;
+      }
+      o += ch; i++;
+    }
+    return o;
+  }
+  function trStressPiece(pieces) {
+    var k = -1;
+    pieces.forEach(function (x, i) { if (/[àèéìòóù]/i.test(x)) k = i; });
+    if (k >= 0) return k;
+    return pieces.length >= 2 ? pieces.length - 2 : 0;
+  }
+  function trWords(it) {
+    var ch = [], words = [], cur = null;
+    try { ch = chunksOf(it); } catch (e) { ch = []; }
+    ch.forEach(function (c) { if (!cur || c.sp) { cur = []; words.push(cur); } cur.push(c.t); });
+    return words;
+  }
+  function trPh(it) {
+    var ws = trWords(it);
+    return ws.map(function (w) {
+      var pcs = w;
+      if (w.length > 1 && w.slice(0, -1).some(function (x) { return /'$/.test(x) && /[aeiouàèéìòóù]/i.test(x); })) {
+        try { pcs = syllabify(w.join("").replace(/'/g, "")); } catch (e) { pcs = w; }
+      }
+      var low = w.join("").toLowerCase().replace(/[^a-zà-ÿ]/g, "");
+      if (low === "aiuto") return "ah-YOO-toh";
+      var st = trStressPiece(pcs), out = [], carry = "";
+      if (pcs.length >= 2 && /(ei|oi)$/.test(pcs[pcs.length - 1].toLowerCase())) st = pcs.length - 1;
+      pcs.forEach(function (pc, i) {
+        var prev = i > 0 ? pcs[i - 1].toLowerCase().replace(/[^a-zà-ÿ]/g, "") : "", nxt = i < pcs.length - 1 ? pcs[i + 1].toLowerCase().replace(/[^a-zà-ÿ]/g, "") : "";
+        var r = trRespellPiece(pc, /[aeiouàèéìòóù]$/.test(prev), nxt);
+        if (!/[aeiou]/.test(r)) { carry += r; return; }
+        r = carry + r; carry = "";
+        if (i === st && (pcs.length > 1 || ws.length === 1 || r.indexOf("-") > 0)) { var h = r.indexOf("-"); r = h > 0 ? r.slice(0, h).toUpperCase() + r.slice(h) : r.toUpperCase(); }
+        out.push(r);
+      });
+      if (carry && out.length) out[out.length - 1] += carry;
+      return out.join("-");
+    }).join(" ");
+  }
+  function trPiecesHTML(it) {
+    var words = trWords(it);
+    if (!words.length) return "";
+    var h = '<p class="trlab trbreak">How to say it</p><p class="ph">' + phHTML(trPh(it)) + '</p><p class="trnote">The capital letters are the part to say a little stronger. Tap a piece to hear it slowly.</p><div class="trwords" lang="it">';
+    words.forEach(function (w) {
+      var whole = w.join("").replace(/[^A-Za-zÀ-ÿ']/g, "");
+      h += '<div class="trword">';
+      w.forEach(function (pc) {
+        var sp = pc.replace(/[^A-Za-zÀ-ÿ']/g, "");
+        h += sp ? '<button type="button" class="btn sm trpc" data-act="speakslow" data-t="' + esc(sp) + '">' + esc(pc) + "</button>" : esc(pc);
+      });
+      if (w.length > 1 && whole) h += '<button type="button" class="btn sm trall" data-act="trhear" data-t="' + esc(whole) + '" aria-label="Hear the whole word ' + esc(whole) + '">' + SPK_SM + "</button>";
+      h += "</div>";
+    });
+    return h + "</div>";
   }
   function trHTML() {
     var en2it = tr.dir === "en|it";
@@ -2235,7 +2329,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
   }
   app.addEventListener("input", function (e) { if (e.target && e.target.id === "trIn") tr.text = e.target.value; });
   app.addEventListener("keydown", function (e) { if (e.target && e.target.id === "trIn" && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); trGo(); } });
-  var PRACTICE_NAV = [["say", "Say"], ["read", "Read"], ["write", "Write"], ["pairs", "Train your ear"], ["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["lists", "My word lists"], ["translate", "Translate"]];
+  var PRACTICE_NAV = [["say", "Say"], ["read", "Read"], ["write", "Write"], ["pairs", "Train your ear"], ["phrases", "Phrases"], ["listening", "Listen"], ["sounds", "Sound drills"], ["lists", "My word lists"]];
   function render() {
     applyPersonal();
     try {
@@ -2247,7 +2341,7 @@ body { font-size: 1.06rem; line-height: 1.6; }
     if (hd) helpOpen = hd.open;
     var body = view === "translate" ? trHTML() : view === "phrases" ? phrasesHTML() : view === "progress" ? progressHTML() : view === "tutor" ? tutorHTML() : view === "listening" ? listeningHTML() : view === "plan" ? planHTML() : view === "lesson" ? lessonHTML() : view === "sounds" ? soundsHTML() : view === "all" ? allHTML() : view === "say" ? sayHTML() : view === "read" ? readPageHTML() : view === "write" ? writePageHTML() : view === "lists" ? listsHTML() : view === "pairs" ? pairsHTML() : view === "more" ? moreHTML() : view === "sessions" ? sessionsHTML() : view === "settings" ? settingsHTML() : todayHTML();
     if (view === "listening" && !(dict && !dict.done)) body = subNav(PRACTICE_NAV) + body;
-    else if (view === "phrases" || view === "sounds" || view === "lists" || view === "pairs" || view === "translate") body = subNav(PRACTICE_NAV) + body;
+    else if (view === "phrases" || view === "sounds" || view === "lists" || view === "pairs") body = subNav(PRACTICE_NAV) + body;
     else if ((view === "say" && !sayId && !sayView) || (view === "read" && !rdState.kind) || (view === "write" && !wrState.cur && !wrState.done)) body = subNav(PRACTICE_NAV) + body;
     else if (view === "progress" || view === "sessions" || view === "plan" || view === "lesson") body = subNav([["progress", "This week"], ["sessions", "Finished sessions"], ["plan", "Lesson plan"]]) + body;
     if ((view === "read" || view === "write" || view === "say" || view === "pairs") && prevView && prevView !== view) {
